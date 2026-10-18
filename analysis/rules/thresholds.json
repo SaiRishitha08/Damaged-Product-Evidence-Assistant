@@ -1,0 +1,6 @@
+{
+  "blur_score_min": 0.1,
+  "min_width": 320,
+  "min_height": 240,
+  "photo_age_days": 30
+}

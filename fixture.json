@@ -1,0 +1,135 @@
+{
+  "case_id": "C12",
+  "synthetic": true,
+  "data_version": "v3.2",
+  "currency": "INR unless explicitly stated",
+  "missing_values": "null means unknown, never zero",
+  "records": {
+    "images": [
+      {
+        "product_id": "P01",
+        "path": "../assets/P01.png",
+        "visible_description": "Blue rounded rectangular product illustration",
+        "metadata_title": "Blue Tshirt",
+        "review_note": "This is a synthetic illustration; title and product type are metadata, not proof of visible material or performance."
+      },
+      {
+        "product_id": "P02",
+        "path": "../assets/P02.png",
+        "visible_description": "Blue rounded rectangular product illustration",
+        "metadata_title": "Blue Tshirt",
+        "review_note": "This is a synthetic illustration; title and product type are metadata, not proof of visible material or performance."
+      },
+      {
+        "product_id": "P03",
+        "path": "../assets/P03.png",
+        "visible_description": "Red rounded rectangular product illustration",
+        "metadata_title": "Red Tshirt",
+        "review_note": "This is a synthetic illustration; title and product type are metadata, not proof of visible material or performance."
+      },
+      {
+        "product_id": "P04",
+        "path": "../assets/P04.png",
+        "visible_description": "Blue rounded rectangular product illustration",
+        "metadata_title": "Blue Tshirt",
+        "review_note": "This is a synthetic illustration; title and product type are metadata, not proof of visible material or performance."
+      },
+      {
+        "product_id": "P05",
+        "path": "../assets/P05.png",
+        "visible_description": "Blue rounded rectangular product illustration",
+        "metadata_title": "Blue Mug",
+        "review_note": "This is a synthetic illustration; title and product type are metadata, not proof of visible material or performance."
+      },
+      {
+        "product_id": "P06",
+        "path": "../assets/P06.png",
+        "visible_description": "Red rounded rectangular product illustration",
+        "metadata_title": "Red Mug",
+        "review_note": "This is a synthetic illustration; title and product type are metadata, not proof of visible material or performance."
+      }
+    ],
+    "complaints": [
+      {
+        "case_id": "DAMAGE01",
+        "image": "../assets/P01.png",
+        "customer_statement": "Item does not work",
+        "visible_fact": "Synthetic rounded rectangular illustration; functional damage cannot be verified",
+        "expected": "Keep claim separate from observation; request functional or packaging evidence; no automatic refund"
+      },
+      {
+        "case_id": "DAMAGE02",
+        "image": "../assets/P02.png",
+        "customer_statement": "Package was damaged",
+        "visible_fact": "Synthetic rounded rectangular illustration; functional damage cannot be verified",
+        "expected": "Keep claim separate from observation; request functional or packaging evidence; no automatic refund"
+      },
+      {
+        "case_id": "DAMAGE03",
+        "image": "../assets/P03.png",
+        "customer_statement": "Item does not work",
+        "visible_fact": "Synthetic rounded rectangular illustration; functional damage cannot be verified",
+        "expected": "Keep claim separate from observation; request functional or packaging evidence; no automatic refund"
+      },
+      {
+        "case_id": "DAMAGE04",
+        "image": "../assets/P04.png",
+        "customer_statement": "Package was damaged",
+        "visible_fact": "Synthetic rounded rectangular illustration; functional damage cannot be verified",
+        "expected": "Keep claim separate from observation; request functional or packaging evidence; no automatic refund"
+      },
+      {
+        "case_id": "DAMAGE05",
+        "image": "../assets/P05.png",
+        "customer_statement": "Item does not work",
+        "visible_fact": "Synthetic rounded rectangular illustration; functional damage cannot be verified",
+        "expected": "Keep claim separate from observation; request functional or packaging evidence; no automatic refund"
+      },
+      {
+        "case_id": "DAMAGE06",
+        "image": "../assets/P06.png",
+        "customer_statement": "Package was damaged",
+        "visible_fact": "Synthetic rounded rectangular illustration; functional damage cannot be verified",
+        "expected": "Keep claim separate from observation; request functional or packaging evidence; no automatic refund"
+      },
+      {
+        "case_id": "DAMAGE07",
+        "image": "../assets/P01.png",
+        "customer_statement": "Item does not work",
+        "visible_fact": "Synthetic rounded rectangular illustration; functional damage cannot be verified",
+        "expected": "Keep claim separate from observation; request functional or packaging evidence; no automatic refund"
+      },
+      {
+        "case_id": "DAMAGE08",
+        "image": "../assets/P02.png",
+        "customer_statement": "Package was damaged",
+        "visible_fact": "Synthetic rounded rectangular illustration; functional damage cannot be verified",
+        "expected": "Keep claim separate from observation; request functional or packaging evidence; no automatic refund"
+      },
+      {
+        "case_id": "DAMAGE09",
+        "image": "../assets/P03.png",
+        "customer_statement": "Item does not work",
+        "visible_fact": "Synthetic rounded rectangular illustration; functional damage cannot be verified",
+        "expected": "Keep claim separate from observation; request functional or packaging evidence; no automatic refund"
+      },
+      {
+        "case_id": "DAMAGE10",
+        "image": null,
+        "customer_statement": "Package was damaged",
+        "visible_fact": "No image supplied",
+        "expected": "Keep claim separate from observation; request functional or packaging evidence; no automatic refund"
+      }
+    ],
+    "rules": [
+      "Separate visible facts, metadata and customer claims.",
+      "No automatic refund or authenticity verdict."
+    ]
+  },
+  "public_checks": [
+    "Correctly distinguish observed details, customer statements and unknowns on ten labelled cases.",
+    "No claim about cause, fraud, authenticity or refund eligibility unsupported by the supplied evidence.",
+    "Blurry/conflicting photos trigger a precise request for evidence; reviewer edits persist."
+  ],
+  "limit": "Small teaching fixture for a bounded prototype. Market demand, willingness to pay and production performance remain unproven."
+}

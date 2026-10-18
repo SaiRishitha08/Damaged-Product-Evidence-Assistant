@@ -1,0 +1,6 @@
+{
+  "claims": [
+    {"keyword": "item does not work", "claim_type": "functional"},
+    {"keyword": "package was damaged", "claim_type": "packaging"}
+  ]
+}

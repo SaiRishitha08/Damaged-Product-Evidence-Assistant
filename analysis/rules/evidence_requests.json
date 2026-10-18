@@ -1,0 +1,5 @@
+{
+  "requests": [
+    {"flag": "FUNCTION_NOT_VERIFIABLE", "requested_item": "A short demonstration video or other functional evidence.", "reason": "A photo cannot verify whether the item works."}
+  ]
+}
