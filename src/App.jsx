@@ -22,16 +22,14 @@ import {
 } from './data/customerDirectory';
 import { CheckCircle2, AlertCircle, X, ShieldCheck } from 'lucide-react';
 import { 
-  db, 
-  COLLECTIONS,
-  saveCaseToFirestore,
-  savePackingRecordToFirestore,
-  saveCustomerToFirestore,
-  saveSellerToFirestore,
-  saveOrderToFirestore,
-  fetchAllFirebaseData
-} from './firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+  supabase,
+  saveCaseToSupabase,
+  savePackingRecordToSupabase,
+  saveCustomerToSupabase,
+  saveSellerToSupabase,
+  saveOrderToSupabase,
+  fetchAllSupabaseData
+} from './supabase';
 
 const DATA_VERSION = 'v7_clean_empty_manual_registration';
 if (typeof window !== 'undefined') {
@@ -195,126 +193,6 @@ export default function App() {
     localStorage.setItem('C12_SELLER_REGISTRY', JSON.stringify(sellerRegistry));
   }, [sellerRegistry]);
 
-  // Real-time Firebase Firestore synchronization
-  const [firebaseConnected, setFirebaseConnected] = useState(true);
-
-  useEffect(() => {
-    let unsubs = [];
-    try {
-      // 1. Evidence cases real-time listener
-      const unsubCases = onSnapshot(collection(db, COLLECTIONS.CASES), (snap) => {
-        setFirebaseConnected(true);
-        if (!snap.empty) {
-          const remoteCases = [];
-          snap.forEach(d => remoteCases.push(d.data()));
-          setEvidenceCases(prev => {
-            const merged = [...prev];
-            remoteCases.forEach(rc => {
-              const idx = merged.findIndex(c => c.caseId === rc.caseId);
-              if (idx >= 0) merged[idx] = { ...merged[idx], ...rc };
-              else merged.unshift(rc);
-            });
-            return merged;
-          });
-        }
-      }, (err) => {
-        console.warn('[Firebase] Cases sync notice:', err.message);
-      });
-      unsubs.push(unsubCases);
-
-      // 2. Seller packing records real-time listener
-      const unsubPacking = onSnapshot(collection(db, COLLECTIONS.PACKING_RECORDS), (snap) => {
-        setFirebaseConnected(true);
-        if (!snap.empty) {
-          const remoteRecords = [];
-          snap.forEach(d => remoteRecords.push(d.data()));
-          setSellerPackingRecords(prev => {
-            const merged = [...prev];
-            remoteRecords.forEach(rr => {
-              const idx = merged.findIndex(r => r.orderNo === rr.orderNo);
-              if (idx >= 0) merged[idx] = { ...merged[idx], ...rr };
-              else merged.unshift(rr);
-            });
-            return merged;
-          });
-        }
-      }, (err) => {
-        console.warn('[Firebase] Packing records sync notice:', err.message);
-      });
-      unsubs.push(unsubPacking);
-
-      // 3. Customer registry real-time listener
-      const unsubCustomers = onSnapshot(collection(db, COLLECTIONS.CUSTOMERS), (snap) => {
-        setFirebaseConnected(true);
-        if (!snap.empty) {
-          const remoteCusts = [];
-          snap.forEach(d => remoteCusts.push(d.data()));
-          setCustomerRegistry(prev => {
-            const merged = [...prev];
-            remoteCusts.forEach(rc => {
-              const idx = merged.findIndex(c => (c.mobile || c.phone) === (rc.mobile || rc.phone));
-              if (idx >= 0) merged[idx] = { ...merged[idx], ...rc };
-              else merged.push(rc);
-            });
-            return merged;
-          });
-        }
-      }, (err) => {
-        console.warn('[Firebase] Customers sync notice:', err.message);
-      });
-      unsubs.push(unsubCustomers);
-
-      // 4. Seller registry real-time listener
-      const unsubSellers = onSnapshot(collection(db, COLLECTIONS.SELLERS), (snap) => {
-        setFirebaseConnected(true);
-        if (!snap.empty) {
-          const remoteSellers = [];
-          snap.forEach(d => remoteSellers.push(d.data()));
-          setSellerRegistry(prev => {
-            const merged = [...prev];
-            remoteSellers.forEach(rs => {
-              const idx = merged.findIndex(s => s.id === rs.id);
-              if (idx >= 0) merged[idx] = { ...merged[idx], ...rs };
-              else merged.push(rs);
-            });
-            return merged;
-          });
-        }
-      }, (err) => {
-        console.warn('[Firebase] Sellers sync notice:', err.message);
-      });
-      unsubs.push(unsubSellers);
-
-      // 5. Customer orders real-time listener
-      const unsubOrders = onSnapshot(collection(db, COLLECTIONS.ORDERS), (snap) => {
-        setFirebaseConnected(true);
-        if (!snap.empty) {
-          const remoteOrders = [];
-          snap.forEach(d => remoteOrders.push(d.data()));
-          setCustomerOrders(prev => {
-            const merged = [...prev];
-            remoteOrders.forEach(ro => {
-              const idx = merged.findIndex(o => o.orderNo === ro.orderNo);
-              if (idx >= 0) merged[idx] = { ...merged[idx], ...ro };
-              else merged.unshift(ro);
-            });
-            return merged;
-          });
-        }
-      }, (err) => {
-        console.warn('[Firebase] Orders sync notice:', err.message);
-      });
-      unsubs.push(unsubOrders);
-
-    } catch (e) {
-      console.warn('[Firebase] Listeners init error:', e);
-    }
-
-    return () => {
-      unsubs.forEach(unsub => unsub && unsub());
-    };
-  }, []);
-
   // Toast Helper
   const showToast = (msg, type = 'success') => {
     setToastMessage({ msg, type });
@@ -323,11 +201,11 @@ export default function App() {
     }, 4000);
   };
 
-  // Fetch current live data from Firebase Firestore
-  const handleFetchFirebaseData = async () => {
-    showToast('Connecting to Firebase and fetching current live data...', 'info');
+  // Fetch current live data from Supabase when configured.
+  const handleFetchSupabaseData = async () => {
+    showToast('Connecting to Supabase and fetching current live data...', 'info');
     try {
-      const res = await fetchAllFirebaseData();
+      const res = await fetchAllSupabaseData();
       if (res.success) {
         let importedCount = 0;
         if (res.data.cases?.length) {
@@ -391,31 +269,15 @@ export default function App() {
           importedCount += res.data.orders.length;
         }
         if (importedCount === 0) {
-          showToast('Connected to c12fynd! Cloud database is online. Syncing active records to Firestore...', 'info');
-          for (const c of evidenceCases) {
-            await saveCaseToFirestore(c);
-          }
-          for (const r of sellerPackingRecords) {
-            await savePackingRecordToFirestore(r);
-          }
-          for (const cust of customerRegistry) {
-            await saveCustomerToFirestore(cust);
-          }
-          for (const sel of sellerRegistry) {
-            await saveSellerToFirestore(sel);
-          }
-          for (const ord of customerOrders) {
-            await saveOrderToFirestore(ord);
-          }
-          showToast('Firebase c12fynd live! Successfully synchronized active records to Firestore.', 'success');
+          showToast('Supabase is online, but no cloud records were found.', 'info');
         } else {
-          showToast(`Firebase Sync Complete! Fetched ${importedCount} cloud items from c12fynd.`, 'success');
+          showToast(`Supabase sync complete! Fetched ${importedCount} cloud items.`, 'success');
         }
       } else {
-        showToast(`Firebase connected to c12fynd! Cloud status: ${res.error || 'Connected'}`, 'info');
+        showToast(res.error || 'Supabase is not configured. Local storage remains active.', 'info');
       }
     } catch (e) {
-      showToast('Firebase fetch error: ' + e.message, 'error');
+      showToast('Supabase fetch error: ' + e.message, 'error');
     }
   };
 
@@ -424,7 +286,7 @@ export default function App() {
     if (!profile || (!profile.mobile && !profile.phone)) return null;
     const updated = saveCustomerToRegistry(profile, customerRegistry);
     setCustomerRegistry(updated);
-    saveCustomerToFirestore(profile);
+    saveCustomerToSupabase(profile);
     const norm = normalizePhone(profile.mobile || profile.phone);
     return updated.find(c => normalizePhone(c.mobile || c.phone) === norm) || updated[0];
   };
@@ -433,7 +295,7 @@ export default function App() {
   const handleRegisterCustomer = (profile) => {
     const updated = saveCustomerToRegistry(profile, customerRegistry);
     setCustomerRegistry(updated);
-    saveCustomerToFirestore(profile);
+    saveCustomerToSupabase(profile);
     const norm = normalizePhone(profile.mobile || profile.phone);
     const newCust = updated.find(c => normalizePhone(c.mobile || c.phone) === norm) || updated[0];
     setCurrentCustomer(newCust);
@@ -449,7 +311,7 @@ export default function App() {
   const handleRegisterSeller = (sellerData) => {
     const updated = saveSellerToRegistry(sellerData, sellerRegistry);
     setSellerRegistry(updated);
-    saveSellerToFirestore(sellerData);
+    saveSellerToSupabase(sellerData);
     const newSeller = updated.find(s => s.name === sellerData.name) || updated[0];
     setCurrentSeller(newSeller);
     setCurrentUser({ ...newSeller, role: 'seller', roleLabel: 'Seller / Merchant' });
@@ -491,7 +353,7 @@ export default function App() {
     };
 
     setCustomerOrders((prev) => [newOrder, ...prev]);
-    saveOrderToFirestore(newOrder);
+    saveOrderToSupabase(newOrder);
     showToast(`Order ${orderNo} created for customer! You can now select it to report any damage.`, 'success');
     return newOrder;
   };
@@ -566,7 +428,7 @@ export default function App() {
     };
 
     setEvidenceCases((prev) => [caseWithStatus, ...prev]);
-    saveCaseToFirestore(caseWithStatus);
+    saveCaseToSupabase(caseWithStatus);
 
     // If Gemini recommended REFUND, RETURN, or flagged FRAUD/CONTEST, update customer order status
     const rec = newCase.geminiReport?.recommendation?.toUpperCase();
@@ -599,7 +461,7 @@ export default function App() {
       newRecord,
       ...prev.filter((r) => r.orderNo !== newRecord.orderNo)
     ]);
-    savePackingRecordToFirestore(newRecord);
+    savePackingRecordToSupabase(newRecord);
 
     // Automatically link & save customer profile to registry by mobile number WITHOUT switching active user or tab
     if (newRecord.customerMobile || newRecord.customerPhone) {
@@ -642,7 +504,7 @@ export default function App() {
     };
 
     setCustomerOrders((prev) => [newOrder, ...prev.filter(p => p.orderNo !== newRecord.orderNo)]);
-    saveOrderToFirestore(newOrder);
+    saveOrderToSupabase(newOrder);
     showToast(`Order ${newRecord.orderNo} packaging saved & added to customer's order list!`, 'success');
   };
 
@@ -652,7 +514,7 @@ export default function App() {
       prev.map((r) => {
         if (r.orderNo === orderNo) {
           const updated = { ...r, ...updates };
-          savePackingRecordToFirestore(updated);
+          savePackingRecordToSupabase(updated);
           return updated;
         }
         return r;
@@ -666,7 +528,7 @@ export default function App() {
       prev.map((c) => {
         if (c.caseId === caseId) {
           const updated = { ...c, ...updates };
-          saveCaseToFirestore(updated);
+          saveCaseToSupabase(updated);
           return updated;
         }
         return c;
@@ -680,7 +542,7 @@ export default function App() {
       prev.map((c) => {
         if (c.caseId === caseId) {
           const updated = { ...c, status: newStatus };
-          saveCaseToFirestore(updated);
+          saveCaseToSupabase(updated);
           return updated;
         }
         return c;
@@ -736,8 +598,8 @@ export default function App() {
         currentCustomer={currentCustomer}
         currentSeller={currentSeller}
         onLogout={handleLogout}
-        firebaseConnected={firebaseConnected}
-        onFetchFirebaseData={handleFetchFirebaseData}
+        supabaseConfigured={Boolean(supabase)}
+        onFetchSupabaseData={handleFetchSupabaseData}
       />
 
       {/* Main Content Area */}

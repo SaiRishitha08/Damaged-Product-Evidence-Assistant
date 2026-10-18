@@ -32,14 +32,14 @@ flowchart TD
     end
 
     subgraph Controller["App Controller & Real-Time Sync"]
-        STATE["App.jsx\n(Offline-first State + Real-time Listeners)"]
+        STATE["App.jsx\n(Offline-first State + Optional Supabase Sync)"]
         CACHE[("Browser LocalStorage\nC12 Cache Engine")]
     end
 
-    subgraph Backend["Google Cloud & Firebase (c12fynd)"]
-        FS[("Cloud Firestore\n5 Collections")]
-        ST[("Cloud Storage\nEvidence Photos")]
-        AUTH_FB["Firebase Auth & Analytics"]
+    subgraph Backend["Supabase (optional cloud persistence)"]
+        FS[("Postgres\n5 Tables")]
+        ST[("Supabase Storage\nEvidence Photos")]
+        AUTH_FB["Supabase Client"]
     end
 
     subgraph AI["AI & Document Generation"]
@@ -108,13 +108,13 @@ flowchart TD
 * **Mode-Aware Navigation**:
   * In **Seller Mode**: Navigation pills display `Dashboard` (`analytics`), `New Dispatch` (`new-record`), `Cases` (`cases`), `Packaging Vault` (`catalog`), and a `Customer Portal` toggle button.
   * In **Customer Mode**: Navigation pills display `Dashboard`, `New Claim`, `Cases`, `Orders`, and a `Seller Portal` toggle button.
-* **Firebase Cloud Live Badge (`c12fynd`)**: 1-click button to synchronize and fetch all live records from the Firebase cloud database.
+* **Supabase status badge**: 1-click button to synchronize records when Supabase is configured; local storage remains the fallback.
 
 ---
 
-## 4. Database Architecture & Firestore Schemas
+## 4. Database Architecture & Supabase Schema
 
-Backend database is hosted on **Firebase Cloud Firestore** (Project: `c12fynd`). It uses an offline-first architecture with automatic bidirectional WebSocket synchronization (`onSnapshot`) and LocalStorage fallback.
+The application uses browser LocalStorage by default. Optional cloud persistence is prepared for Supabase Postgres through `src/supabase.js`.
 
 ### 4.1 Collection: `evidence_cases`
 > Document ID: `caseId` (e.g., `CAS-ORD-90211-171829`)
@@ -317,20 +317,20 @@ npm run build
 npm run preview
 ```
 
-### 7.4 Firebase Configuration
-Connected to Firebase project `c12fynd`. Configuration is maintained in [`src/firebase.js`](file:///c:/Hackathons/Damaged%20Product%20Evidence%20Assistant/src/firebase.js):
-```javascript
-export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
-};
-```
-Populate these values from `.env.local`, using `.env.example` as the template. Firebase web configuration values are client-visible; protect the project with Firebase Authentication and Security Rules.
+### 7.4 Supabase Preparation
+Cloud persistence is isolated in [`src/supabase.js`](file:///c:/Hackathons/Damaged%20Product%20Evidence%20Assistant/src/supabase.js) and is enabled only when `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are configured. Until then, the application remains functional with local storage.
+
+The adapter expects these tables and unique columns:
+
+| Table | Unique column |
+|---|---|
+| `evidence_cases` | `case_id` |
+| `seller_packing_records` | `order_no` |
+| `customer_orders` | `order_no` |
+| `customer_registry` | `phone` |
+| `seller_registry` | `id` |
+
+Use the Supabase anon/publishable key only in the browser. Never place a service-role or secret key in `.env.local` or any `VITE_*` variable.
 
 ---
 
@@ -341,6 +341,6 @@ Populate these values from `.env.local`, using `.env.example` as the template. F
 | **Customer Portal** | Operational | Multi-step filing, 5 photo slots, live Gemini AI console |
 | **Seller Portal** | Operational | Immediate entry, analytics graphs, proof registration, packaging vault |
 | **Gemini AI Vision** | Operational | Multi-model cascade, original vs fraud, risk levels, replacement decisions |
-| **Firebase Cloud** | Connected | Real-time sync on `c12fynd`, Firestore collections, Cloud Storage |
+| **Supabase Cloud** | Prepared | Optional Postgres persistence; local storage remains the default until configured |
 | **PDF Dossier** | Operational | Multi-angle photo grid, risk badge, jsPDF vector rendering |
 | **Build Status** | Passing | 0 errors (`npm run build`) |

@@ -4,7 +4,7 @@
 [![React](https://img.shields.io/badge/React-18.x-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6.x-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-3.x-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Firebase Firestore](https://img.shields.io/badge/Firebase-Firestore-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-Postgres-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 [![Google Gemini AI](https://img.shields.io/badge/Google_Gemini-Multimodal_Vision-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
 [![jsPDF](https://img.shields.io/badge/PDF_Engine-jsPDF-E74C3C)](https://github.com/parallax/jsPDF)
 
@@ -25,7 +25,7 @@ An enterprise-grade, multimodal AI-powered platform designed to resolve the mult
    - [Multi-Model Cascading Fallback](#multi-model-cascading-fallback)
    - [Tri-Party Visual Triangulation](#tri-party-comparative-visual-triangulation)
    - [Output Classification Matrix & Risk Badges](#output-classification--verdict-matrix)
-5. [Database Architecture & Firestore Schemas](#-database-architecture--firestore-schemas)
+5. [Database Architecture & Supabase Schema](#-database-architecture--supabase-schema)
    - [Collection: `evidence_cases`](#1-collection-evidence_cases)
    - [Collection: `seller_packing_records`](#2-collection-seller_packing_records)
    - [Collection: `customer_orders`](#3-collection-customer_orders)
@@ -71,10 +71,10 @@ flowchart TD
         CACHE[("Browser LocalStorage\nC12 Offline Cache")]
     end
 
-    subgraph Backend["Google Cloud & Firebase (c12fynd)"]
-        FS[("Cloud Firestore\n5 Collections: Cases, Records, Orders, Customers, Sellers")]
-        ST[("Cloud Storage\nTamper-Proof Photo Evidence")]
-        AUTH_FB["Firebase Live Listeners\n(onSnapshot Bidirectional Sync)"]
+    subgraph Backend["Supabase (optional cloud persistence)"]
+        FS[("Postgres\n5 Tables: Cases, Records, Orders, Customers, Sellers")]
+        ST[("Supabase Storage\nEvidence Photos")]
+        AUTH_FB["Supabase Client\n(Opt-in cloud sync)"]
     end
 
     subgraph AI["Artificial Intelligence & PDF Generation"]
@@ -198,9 +198,9 @@ The multimodal request bundles up to 7 base64 images into a structured prompt:
 
 ---
 
-## 🗄️ Database Architecture & Firestore Schemas
+## 🗄️ Database Architecture & Supabase Schema
 
-Hosted on **Firebase Cloud Firestore** (`c12fynd`) with offline-first local storage caching and automatic WebSocket synchronization.
+The application is offline-first and uses browser local storage by default. Optional cloud persistence is prepared for **Supabase Postgres** through `src/supabase.js`.
 
 ```mermaid
 erDiagram
@@ -406,16 +406,15 @@ interface SellerProfile {
   * Inline `image/png` or `image/jpeg` base64 data parts for before packing, after packing, and received condition.
   * Structured JSON schema response parsing.
 
-### 2. Firebase Cloud Firestore Operations
-* **File**: [`src/firebase.js`](src/firebase.js)
+### 2. Supabase Operations
+* **File**: [`src/supabase.js`](src/supabase.js)
 * **Functions**:
-  * `saveCaseToFirestore(caseData)`: Writes/updates dispute case in `evidence_cases`.
-  * `savePackingRecordToFirestore(recordData)`: Saves dispatch packing baseline in `seller_packing_records`.
-  * `saveCustomerToFirestore(custData)`: Persists customer profile in `customer_registry`.
-  * `saveSellerToFirestore(sellerData)`: Registers merchant in `seller_registry`.
-  * `saveOrderToFirestore(orderData)`: Records purchases in `customer_orders`.
-  * `fetchAllFirebaseData()`: Fetches entire cloud snapshot across all 5 collections.
-  * `subscribeToCollection(collectionName, callback)`: Live WebSocket synchronization for instant multi-tab updates.
+  * `saveCaseToSupabase(caseData)`: Writes/updates dispute case in `evidence_cases`.
+  * `savePackingRecordToSupabase(recordData)`: Saves dispatch packing baseline in `seller_packing_records`.
+  * `saveCustomerToSupabase(custData)`: Persists customer profile in `customer_registry`.
+  * `saveSellerToSupabase(sellerData)`: Registers merchant in `seller_registry`.
+  * `saveOrderToSupabase(orderData)`: Records purchases in `customer_orders`.
+  * `fetchAllSupabaseData()`: Fetches the configured cloud tables.
 
 ### 3. PDF Forensic Dossier Generator
 * **File**: [`src/utils/pdfGenerator.js`](src/utils/pdfGenerator.js)
@@ -462,7 +461,7 @@ Damaged Product Evidence Assistant/
 │   │   ├── pdfGenerator.js           # jsPDF vector certified evidence docket engine
 │   │   └── storage.js                # LocalStorage caching & data version migration
 │   ├── App.jsx                       # Main application controller & state sync
-│   ├── firebase.js                   # Firebase Cloud Firestore & Storage integration
+│   ├── supabase.js                   # Optional Supabase persistence adapter
 │   ├── index.css                     # Tailwind CSS directives & custom typography
 │   └── main.jsx                      # React 18 DOM mount & ErrorBoundary wrapper
 ├── .gitignore                  # Git ignore rules for node_modules, build & logs
@@ -499,9 +498,10 @@ Damaged Product Evidence Assistant/
    Copy `.env.example` to `.env.local` and add your own service configuration:
    ```bash
    VITE_GEMINI_API_KEY=your_gemini_api_key
-   VITE_FIREBASE_API_KEY=your_firebase_api_key
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
-   The application uses its local forensic fallback engine when the Gemini variable is not set. Never commit `.env.local`, API keys, Supabase keys, or deployment tokens. `VITE_*` values are public in a browser build; keep Render and Vercel tokens in their respective secret managers.
+   The application uses local storage when Supabase is not configured. Never commit `.env.local`, API keys, Supabase secret/service-role keys, or deployment tokens. `VITE_*` values are public in a browser build; keep Render and Vercel tokens in their respective secret managers.
 
 4. **Start the local development server**:
    ```bash

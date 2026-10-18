@@ -32,8 +32,8 @@ export default function Navbar({
   currentCustomer = null,
   currentSeller = null,
   onLogout,
-  firebaseConnected = true,
-  onFetchFirebaseData
+  supabaseConfigured = false,
+  onFetchSupabaseData
 }) {
   const isSellerMode = currentTab === 'seller';
   const isCustomerMode = currentTab === 'customer';
@@ -262,7 +262,7 @@ export default function Navbar({
             })}
           </nav>
 
-          {/* Right Controls: Search, Theme, Notifications, Profile & Firebase */}
+          {/* Right Controls: Search, Theme, Notifications, Profile & Supabase */}
           <div className="flex items-center space-x-2.5 shrink-0">
             
             {/* Pill Search Input */}
@@ -277,15 +277,15 @@ export default function Navbar({
               />
             </div>
 
-            {/* Firebase Live Badge */}
+            {/* Supabase status badge */}
             <button 
               type="button"
-              onClick={onFetchFirebaseData}
-              title="Click to fetch live data from Firebase (c12fynd)"
+              onClick={onFetchSupabaseData}
+              title={supabaseConfigured ? 'Fetch live data from Supabase' : 'Configure Supabase environment variables to enable cloud sync'}
               className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200/90 transition cursor-pointer whitespace-nowrap shadow-2xs"
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="font-mono text-[10px]">c12fynd</span>
+              <span className={`w-2 h-2 rounded-full ${supabaseConfigured ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+              <span className="font-mono text-[10px]">Supabase</span>
               <RefreshCw className="w-2.5 h-2.5 text-zinc-500" />
             </button>
 
