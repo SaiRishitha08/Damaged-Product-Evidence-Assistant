@@ -1,0 +1,8 @@
+{
+  "flags": [
+    {"code": "NO_IMAGE", "label": "No image", "severity": "high", "explanation": "No photo was supplied."},
+    {"code": "FUNCTION_NOT_VERIFIABLE", "label": "Function not verifiable", "severity": "high", "explanation": "Functionality cannot be verified from a photo."},
+    {"code": "FIXTURE_LABEL_ONLY", "label": "Fixture label only", "severity": "info", "explanation": "This evidence is a fixture reference, not image bytes."},
+    {"code": "AI_FALLBACK_USED", "label": "AI fallback used", "severity": "warning", "explanation": "The rules fallback was used because the AI provider was unavailable or invalid."}
+  ]
+}
