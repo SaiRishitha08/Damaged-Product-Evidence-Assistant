@@ -321,15 +321,16 @@ npm run preview
 Connected to Firebase project `c12fynd`. Configuration is maintained in [`src/firebase.js`](file:///c:/Hackathons/Damaged%20Product%20Evidence%20Assistant/src/firebase.js):
 ```javascript
 export const firebaseConfig = {
-  apiKey: "AIzaSyAZpnt_CKu-E1nPBrw0Qv71NnU5-9TDFv8",
-  authDomain: "c12fynd.firebaseapp.com",
-  projectId: "c12fynd",
-  storageBucket: "c12fynd.firebasestorage.app",
-  messagingSenderId: "868717592168",
-  appId: "1:868717592168:web:195d148ae1499a644485dd",
-  measurementId: "G-PD6SFD999H"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 ```
+Populate these values from `.env.local`, using `.env.example` as the template. Firebase web configuration values are client-visible; protect the project with Firebase Authentication and Security Rules.
 
 ---
 

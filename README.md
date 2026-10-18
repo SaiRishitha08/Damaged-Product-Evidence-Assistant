@@ -496,11 +496,12 @@ Damaged Product Evidence Assistant/
    ```
 
 3. **Configure Gemini Vision (optional)**:
-   Create a local `.env.local` file and add your own Gemini API key:
+   Copy `.env.example` to `.env.local` and add your own service configuration:
    ```bash
    VITE_GEMINI_API_KEY=your_gemini_api_key
+   VITE_FIREBASE_API_KEY=your_firebase_api_key
    ```
-   The application uses its local forensic fallback engine when this variable is not set. Never commit `.env.local` or API keys.
+   The application uses its local forensic fallback engine when the Gemini variable is not set. Never commit `.env.local`, API keys, Supabase keys, or deployment tokens. `VITE_*` values are public in a browser build; keep Render and Vercel tokens in their respective secret managers.
 
 4. **Start the local development server**:
    ```bash
