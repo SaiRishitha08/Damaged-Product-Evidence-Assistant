@@ -51,6 +51,7 @@ import { generateCustomerEvidencePDF, generateSellerDossierPDF, generateGeminiAI
 import { MARKETPLACE_SELLERS, CURRENT_SELLER, DEFAULT_SELLER_STORES } from '../data/initialData';
 import { analyzeDamageWithGemini } from '../utils/geminiAnalyzer';
 import { findCustomerByMobile, normalizePhone, DEFAULT_CUSTOMER_PROFILES } from '../data/customerDirectory';
+import AuthLandingPage from './AuthLandingPage';
 
 export default function SellerDashboard({ 
   activeSeller = null,
@@ -487,253 +488,20 @@ export default function SellerDashboard({
     return sellerPackingRecords.find((r) => r.orderNo === orderNo) || null;
   };
 
-  // If no seller is authenticated / logged in yet, show clean Seller Login & Registration view
+  // If no seller is authenticated / logged in yet, show clean split-screen landing page
   if (!activeSeller) {
     return (
-      <div className="max-w-xl mx-auto py-10 px-4 animate-fade-in space-y-6 font-['Plus_Jakarta_Sans',sans-serif]">
-        <div className="bg-white border border-zinc-200/90 rounded-3xl p-8 sm:p-10 shadow-xs space-y-6 text-center">
-          
-          {/* EvidenceAssistant Brand Header matching screenshot */}
-          <div className="flex items-center justify-center space-x-2.5 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-zinc-950 flex items-center justify-center text-white shadow-xs">
-              <Box className="w-5 h-5 text-indigo-400" />
-            </div>
-            <div className="text-left">
-              <span className="text-base font-extrabold text-zinc-950 block leading-tight">EvidenceAssistant</span>
-              <span className="text-[10px] text-zinc-500 font-medium block leading-none">Damaged Goods Review Platform</span>
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-extrabold text-zinc-950 tracking-tight mt-1">
-              {sellerAuthMode === 'login' ? 'Welcome Back' : 'Register Merchant Store'}
-            </h2>
-            <p className="text-xs text-zinc-500 max-w-md mx-auto mt-1 leading-relaxed">
-              {sellerAuthMode === 'login'
-                ? 'Sign in to your merchant store to manage dispatches, inspect packaging proofs and review damage claims.'
-                : 'Create your merchant store profile to record packing dispatches and process customer damage claims.'}
-            </p>
-          </div>
-
-          {/* Dual Role Selector: Customer Login & Seller Login (Direct switching between portals) */}
-          <div className="flex justify-center">
-            <div className="inline-flex p-1 bg-zinc-100 rounded-xl border border-zinc-200">
-              <button
-                type="button"
-                onClick={() => onSwitchToCustomer && onSwitchToCustomer()}
-                className="px-5 py-2.5 rounded-lg text-xs font-bold transition flex items-center space-x-2 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-200/60"
-                title="Switch to Customer Portal"
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>Customer Login</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSellerAuthMode('login');
-                  setSellerLoginError('');
-                }}
-                className={`px-5 py-2.5 rounded-lg text-xs font-bold transition flex items-center space-x-2 ${
-                  sellerAuthMode === 'login'
-                    ? 'bg-zinc-950 text-white shadow-xs'
-                    : 'text-zinc-600 hover:text-zinc-950'
-                }`}
-              >
-                <Store className="w-3.5 h-3.5" />
-                <span>Seller Login</span>
-              </button>
-            </div>
-          </div>
-
-          {/* TAB 1: SELLER LOGIN */}
-          {sellerAuthMode === 'login' && (
-            <form onSubmit={handleSellerLoginSubmit} className="text-left space-y-4 pt-1 animate-fade-in">
-              <div>
-                <label className="block text-[11px] font-bold text-zinc-700 uppercase tracking-wider mb-1.5">
-                  Select Registered Store or Enter Store ID *
-                </label>
-                <div className="relative">
-                  <KeyRound className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
-                  <input
-                    type="text"
-                    required
-                    value={sellerLoginId}
-                    onChange={(e) => {
-                      setSellerLoginId(e.target.value);
-                      setSellerLoginError('');
-                    }}
-                    placeholder="e.g. SLR-1001 or Apex Tech"
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-zinc-900 font-medium focus:bg-white focus:outline-none focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 transition"
-                  />
-                </div>
-              </div>
-
-              {displayStores.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                    Quick Select Active Store:
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {displayStores.slice(0, 3).map((st) => (
-                      <button
-                        key={st.id}
-                        type="button"
-                        onClick={() => {
-                          setSellerLoginId(st.id);
-                          setSellerLoginError('');
-                        }}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${
-                          sellerLoginId === st.id
-                            ? 'bg-zinc-950 text-white border-zinc-950'
-                            : 'bg-zinc-50 hover:bg-zinc-100 text-zinc-700 border-zinc-200'
-                        }`}
-                      >
-                        {st.name} ({st.id})
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {sellerLoginError && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start space-x-2">
-                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                  <span>{sellerLoginError}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full py-3 px-4 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center space-x-2 mt-2"
-              >
-                <Store className="w-4 h-4" />
-                <span>Sign In to Seller Dashboard</span>
-                <ArrowRight className="w-3.5 h-3.5 ml-1" />
-              </button>
-
-              <div className="text-center pt-2">
-                <p className="text-xs text-zinc-500">
-                  Don't have a merchant store?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSellerAuthMode('signup');
-                      setSellerLoginError('');
-                    }}
-                    className="text-zinc-950 font-bold hover:underline"
-                  >
-                    Register Store
-                  </button>
-                </p>
-              </div>
-            </form>
-          )}
-
-          {/* TAB 2: SELLER SIGNUP */}
-          {sellerAuthMode === 'signup' && (
-            <form onSubmit={handleRegisterSellerSubmit} className="text-left space-y-3.5 pt-1 animate-fade-in">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-zinc-700 uppercase tracking-wider mb-1">
-                    Store / Business Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={regStoreName}
-                    onChange={(e) => setRegStoreName(e.target.value)}
-                    placeholder="e.g. Apex Tech Solutions"
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3.5 py-2 text-xs text-zinc-900 font-medium focus:bg-white focus:outline-none focus:border-zinc-950"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-zinc-700 uppercase tracking-wider mb-1">
-                    Store ID
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={regSellerId}
-                    onChange={(e) => setRegSellerId(e.target.value)}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3.5 py-2 text-xs text-zinc-900 font-mono font-medium focus:bg-white focus:outline-none focus:border-zinc-950"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-zinc-700 uppercase tracking-wider mb-1">
-                  Fulfillment Hub Location
-                </label>
-                <input
-                  type="text"
-                  value={regHub}
-                  onChange={(e) => setRegHub(e.target.value)}
-                  placeholder="e.g. Bhiwandi Central Fulfillment Hub, Mumbai"
-                  className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3.5 py-2 text-xs text-zinc-900 font-medium focus:bg-white focus:outline-none focus:border-zinc-950"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-zinc-700 uppercase tracking-wider mb-1">
-                    Contact Phone *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={regPhone}
-                    onChange={(e) => setRegPhone(e.target.value)}
-                    placeholder="+91 98200 11223"
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3.5 py-2 text-xs text-zinc-900 font-mono font-medium focus:bg-white focus:outline-none focus:border-zinc-950"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-zinc-700 uppercase tracking-wider mb-1">
-                    Store Category
-                  </label>
-                  <select
-                    value={regCategory}
-                    onChange={(e) => setRegCategory(e.target.value)}
-                    className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2 text-xs text-zinc-900 font-medium focus:bg-white focus:outline-none focus:border-zinc-950"
-                  >
-                    <option value="Electronics & Retail">Electronics & Retail</option>
-                    <option value="Apparel & Fashion">Apparel & Fashion</option>
-                    <option value="Home & Kitchen">Home & Kitchen</option>
-                    <option value="Audio & Gadgets">Audio & Gadgets</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  className="w-full py-3 px-4 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center space-x-2"
-                >
-                  <Store className="w-4 h-4" />
-                  <span>Register Store & Open Dashboard</span>
-                </button>
-              </div>
-
-              <div className="text-center pt-1">
-                <p className="text-xs text-zinc-500">
-                  Already registered?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSellerAuthMode('login');
-                      setSellerLoginError('');
-                    }}
-                    className="text-zinc-950 font-bold hover:underline"
-                  >
-                    Login here
-                  </button>
-                </p>
-              </div>
-            </form>
-          )}
-
-        </div>
-      </div>
+      <AuthLandingPage
+        activeRole="seller"
+        onRoleChange={(role) => {
+          if (role === 'customer' && onSwitchToCustomer) onSwitchToCustomer();
+        }}
+        customerRegistry={customerRegistry}
+        sellerRegistry={sellerRegistry}
+        onLoginSeller={onSwitchSeller}
+        onLoginCustomer={onSwitchToCustomer}
+        onRegisterSeller={onRegisterSeller}
+      />
     );
   }
 

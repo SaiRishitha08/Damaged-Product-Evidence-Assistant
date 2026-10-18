@@ -4,6 +4,7 @@ import CustomerDashboard from './components/CustomerDashboard';
 import SellerDashboard from './components/SellerDashboard';
 import SupportReviewerConsole from './components/SupportReviewerConsole';
 import LoginDashboard from './components/LoginDashboard';
+import AuthLandingPage from './components/AuthLandingPage';
 import EvidenceDossierModal from './components/EvidenceDossierModal';
 import { 
   SAMPLE_BOOKED_PRODUCTS, 
@@ -716,99 +717,104 @@ export default function App() {
     }
   };
 
+  const isCustomerLoggedIn = Boolean(currentCustomer);
+  const isSellerLoggedIn = Boolean(currentSeller);
+  const isAuthPage = (!isCustomerLoggedIn && currentTab === 'customer') || (!isSellerLoggedIn && currentTab === 'seller') || currentTab === 'login';
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
-      
-      {/* Top Banner & Navigation */}
-      <Navbar
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
-        casesCount={
-          currentTab === 'customer'
-            ? (currentCustomer ? evidenceCases.filter(c => normalizePhone(c.customerMobile || c.customerPhone) === normalizePhone(currentCustomer.mobile || currentCustomer.phone)).length : 0)
-            : evidenceCases.length
-        }
-        sellerRecordsCount={sellerPackingRecords.length}
-        onResetData={handleResetData}
-        currentUser={
-          currentTab === 'customer'
-            ? (currentCustomer ? { ...currentCustomer, roleLabel: 'Customer' } : null)
-            : currentTab === 'seller'
-            ? (currentSeller ? { ...currentSeller, roleLabel: 'Seller' } : null)
-            : (currentUser || currentCustomer || currentSeller)
-        }
-        currentCustomer={currentCustomer}
-        currentSeller={currentSeller}
-        onLogout={handleLogout}
-        firebaseConnected={firebaseConnected}
-        onFetchFirebaseData={handleFetchFirebaseData}
-      />
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
-        {currentTab === 'customer' && (
-          <CustomerDashboard
+      {isAuthPage ? (
+        <AuthLandingPage
+          activeRole={currentTab === 'seller' ? 'seller' : 'customer'}
+          onRoleChange={(role) => setCurrentTab(role)}
+          customerRegistry={customerRegistry}
+          sellerRegistry={sellerRegistry}
+          onLoginCustomer={handleSwitchCustomer}
+          onLoginSeller={handleSwitchSeller}
+          onRegisterCustomer={handleRegisterCustomer}
+          onRegisterSeller={handleRegisterSeller}
+        />
+      ) : (
+        <>
+          {/* Top Banner & Navigation */}
+          <Navbar
+            currentTab={currentTab}
+            setCurrentTab={setCurrentTab}
+            casesCount={
+              currentTab === 'customer'
+                ? (currentCustomer ? evidenceCases.filter(c => normalizePhone(c.customerMobile || c.customerPhone) === normalizePhone(currentCustomer.mobile || currentCustomer.phone)).length : 0)
+                : evidenceCases.length
+            }
+            sellerRecordsCount={sellerPackingRecords.length}
+            onResetData={handleResetData}
+            currentUser={
+              currentTab === 'customer'
+                ? (currentCustomer ? { ...currentCustomer, roleLabel: 'Customer' } : null)
+                : currentTab === 'seller'
+                ? (currentSeller ? { ...currentSeller, roleLabel: 'Seller' } : null)
+                : (currentUser || currentCustomer || currentSeller)
+            }
             currentCustomer={currentCustomer}
-            onSwitchCustomer={handleSwitchCustomer}
-            onRegisterCustomer={handleRegisterCustomer}
-            onAddCustomerOrder={handleAddCustomerOrder}
-            onSwitchToSeller={() => setCurrentTab('seller')}
-            customerOrders={customerOrders}
-            setCustomerOrders={setCustomerOrders}
-            sellerPackingRecords={sellerPackingRecords}
-            evidenceCases={evidenceCases}
-            customerRegistry={customerRegistry}
-            sellerRegistry={sellerRegistry}
-            onSubmitCase={handleSubmitCustomerCase}
-            onOpenDossierModal={(c) => setDossierModalCase(c)}
-            currentUser={currentUser}
+            currentSeller={currentSeller}
             onLogout={handleLogout}
+            firebaseConnected={firebaseConnected}
+            onFetchFirebaseData={handleFetchFirebaseData}
           />
-        )}
 
-        {currentTab === 'seller' && (
-          <SellerDashboard
-            activeSeller={currentSeller}
-            sellerRegistry={sellerRegistry.length > 0 ? sellerRegistry : DEFAULT_SELLER_STORES}
-            onSwitchSeller={handleSwitchSeller}
-            onRegisterSeller={handleRegisterSeller}
-            onLogin={handleLogin}
-            onSwitchToCustomer={() => setCurrentTab('customer')}
-            sellerPackingRecords={sellerPackingRecords}
-            evidenceCases={evidenceCases}
-            customerRegistry={customerRegistry}
-            onUpdateCustomerRegistry={handleSaveCustomerToDirectory}
-            onAddPackingRecord={handleAddPackingRecord}
-            onUpdatePackingRecord={handleUpdatePackingRecord}
-            onUpdateCaseStatus={handleUpdateCaseStatus}
-            onUpdateCase={handleUpdateCase}
-            onOpenDossierModal={(c) => setDossierModalCase(c)}
-            onLogout={handleLogout}
-          />
-        )}
+          {/* Main Content Area */}
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
+            {currentTab === 'customer' && (
+              <CustomerDashboard
+                currentCustomer={currentCustomer}
+                onSwitchCustomer={handleSwitchCustomer}
+                onRegisterCustomer={handleRegisterCustomer}
+                onAddCustomerOrder={handleAddCustomerOrder}
+                onSwitchToSeller={() => setCurrentTab('seller')}
+                customerOrders={customerOrders}
+                setCustomerOrders={setCustomerOrders}
+                sellerPackingRecords={sellerPackingRecords}
+                evidenceCases={evidenceCases}
+                customerRegistry={customerRegistry}
+                sellerRegistry={sellerRegistry}
+                onSubmitCase={handleSubmitCustomerCase}
+                onOpenDossierModal={(c) => setDossierModalCase(c)}
+                currentUser={currentUser}
+                onLogout={handleLogout}
+              />
+            )}
 
-        {currentTab === 'reviewer' && (
-          <SupportReviewerConsole 
-            onToast={showToast} 
-            evidenceCases={evidenceCases}
-            sellerPackingRecords={sellerPackingRecords}
-            onUpdateCase={handleUpdateCase}
-          />
-        )}
+            {currentTab === 'seller' && (
+              <SellerDashboard
+                activeSeller={currentSeller}
+                sellerRegistry={sellerRegistry.length > 0 ? sellerRegistry : DEFAULT_SELLER_STORES}
+                onSwitchSeller={handleSwitchSeller}
+                onRegisterSeller={handleRegisterSeller}
+                onLogin={handleLogin}
+                onSwitchToCustomer={() => setCurrentTab('customer')}
+                sellerPackingRecords={sellerPackingRecords}
+                evidenceCases={evidenceCases}
+                customerRegistry={customerRegistry}
+                onUpdateCustomerRegistry={handleSaveCustomerToDirectory}
+                onAddPackingRecord={handleAddPackingRecord}
+                onUpdatePackingRecord={handleUpdatePackingRecord}
+                onUpdateCaseStatus={handleUpdateCaseStatus}
+                onUpdateCase={handleUpdateCase}
+                onOpenDossierModal={(c) => setDossierModalCase(c)}
+                onLogout={handleLogout}
+              />
+            )}
 
-        {currentTab === 'login' && (
-          <LoginDashboard
-            customerRegistry={customerRegistry}
-            sellerRegistry={sellerRegistry}
-            onRegisterCustomer={handleRegisterCustomer}
-            onRegisterSeller={handleRegisterSeller}
-            onLogin={handleLogin}
-            onCancel={() => setCurrentTab('customer')}
-            currentUser={currentUser || currentCustomer || currentSeller}
-            onLogout={handleLogout}
-          />
-        )}
-      </main>
+            {currentTab === 'reviewer' && (
+              <SupportReviewerConsole 
+                onToast={showToast} 
+                evidenceCases={evidenceCases}
+                sellerPackingRecords={sellerPackingRecords}
+                onUpdateCase={handleUpdateCase}
+              />
+            )}
+          </main>
+        </>
+      )}
 
       {/* Interactive PDF / Case Dossier Modal */}
       <EvidenceDossierModal
@@ -835,21 +841,23 @@ export default function App() {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200/80 bg-white/80 backdrop-blur-md py-6 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span className="font-semibold text-slate-700">
-              Damaged Product Evidence Assistant (C12)
-            </span>
-            <span>· Fynd × NMIMS Hyderabad Simulation</span>
+      {/* Footer - only shown inside authenticated portal */}
+      {!isAuthPage && (
+        <footer className="border-t border-slate-200/80 bg-white/80 backdrop-blur-md py-6 text-xs text-slate-500">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center space-x-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span className="font-semibold text-slate-700">
+                Damaged Product Evidence Assistant (C12)
+              </span>
+              <span>· Fynd × NMIMS Hyderabad Simulation</span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Powered by Google Gemini 3.8 Flash Multimodal AI & certified camera truth separation.
+            </p>
           </div>
-          <p className="text-[11px] text-slate-500">
-            Powered by Google Gemini 3.8 Flash Multimodal AI & certified camera truth separation.
-          </p>
-        </div>
-      </footer>
+        </footer>
+      )}
 
     </div>
   );
