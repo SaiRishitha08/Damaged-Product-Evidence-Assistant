@@ -495,13 +495,20 @@ Damaged Product Evidence Assistant/
    npm install
    ```
 
-3. **Start the local development server**:
+3. **Configure Gemini Vision (optional)**:
+   Create a local `.env.local` file and add your own Gemini API key:
+   ```bash
+   VITE_GEMINI_API_KEY=your_gemini_api_key
+   ```
+   The application uses its local forensic fallback engine when this variable is not set. Never commit `.env.local` or API keys.
+
+4. **Start the local development server**:
    ```bash
    npm run dev
    ```
    Open your browser and navigate to: **`http://localhost:3000/`**
 
-4. **Build for production**:
+5. **Build for production**:
    ```bash
    npm run build
    ```
