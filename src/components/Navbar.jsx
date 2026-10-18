@@ -19,7 +19,8 @@ import {
   LogIn,
   RotateCcw,
   Store,
-  UserCircle2
+  UserCircle2,
+  MapPin
 } from 'lucide-react';
 
 export default function Navbar({ 
@@ -166,9 +167,9 @@ export default function Navbar({
         },
         {
           id: 'cases',
-          label: 'Cases',
+          label: 'Claims & Dockets',
           icon: FileText,
-          badge: casesCount > 0 ? casesCount : '2',
+          badge: casesCount > 0 ? casesCount : null,
           isActive: activeCustomerSubtab === 'disputes',
           onClick: () => {
             setCurrentTab('customer');
@@ -178,7 +179,7 @@ export default function Navbar({
         },
         {
           id: 'orders',
-          label: 'Orders',
+          label: 'My Orders',
           icon: ShoppingBag,
           badge: null,
           isActive: activeCustomerSubtab === 'orders',
@@ -189,12 +190,16 @@ export default function Navbar({
           }
         },
         {
-          id: 'seller-portal-toggle',
-          label: 'Seller Portal',
-          icon: Store,
+          id: 'profile',
+          label: 'Delivery Profile',
+          icon: MapPin,
           badge: null,
-          isActive: false,
-          onClick: () => setCurrentTab('seller')
+          isActive: activeCustomerSubtab === 'profile',
+          onClick: () => {
+            setCurrentTab('customer');
+            setActiveCustomerSubtab('profile');
+            window.dispatchEvent(new CustomEvent('nav-customer-subtab', { detail: 'profile' }));
+          }
         }
       ];
 
@@ -312,9 +317,19 @@ export default function Navbar({
 
             {/* User Profile Pill matching screenshot: Circular black avatar with initials KA */}
             <div 
-              onClick={() => setCurrentTab('login')}
+              onClick={() => {
+                if (currentTab === 'customer') {
+                  setActiveCustomerSubtab('profile');
+                  window.dispatchEvent(new CustomEvent('nav-customer-subtab', { detail: 'profile' }));
+                } else if (currentTab === 'seller') {
+                  setActiveSellerSubtab('analytics');
+                  window.dispatchEvent(new CustomEvent('nav-seller-subtab', { detail: 'analytics' }));
+                } else {
+                  setCurrentTab('login');
+                }
+              }}
               className="flex items-center space-x-2 pl-1 pr-2.5 py-1 rounded-full hover:bg-zinc-100 border border-transparent hover:border-zinc-200 transition cursor-pointer"
-              title="Click to view accounts or switch"
+              title="Click to view profile"
             >
               <div className="w-8 h-8 rounded-full bg-zinc-950 text-white font-bold text-xs flex items-center justify-center tracking-wider shrink-0 shadow-2xs">
                 {userInitials}

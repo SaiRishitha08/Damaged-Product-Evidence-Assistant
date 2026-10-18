@@ -723,7 +723,11 @@ export default function App() {
       <Navbar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
-        casesCount={evidenceCases.length}
+        casesCount={
+          currentTab === 'customer'
+            ? (currentCustomer ? evidenceCases.filter(c => normalizePhone(c.customerMobile || c.customerPhone) === normalizePhone(currentCustomer.mobile || currentCustomer.phone)).length : 0)
+            : evidenceCases.length
+        }
         sellerRecordsCount={sellerPackingRecords.length}
         onResetData={handleResetData}
         currentUser={

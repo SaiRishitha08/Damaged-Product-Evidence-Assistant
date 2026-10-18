@@ -612,38 +612,6 @@ export default function CustomerDashboard({
                 <span>Login & Open Customer Dashboard</span>
               </button>
 
-              {/* Quick 1-Click login if registered customers exist */}
-              {customerRegistry.length > 0 && (
-                <div className="pt-4 border-t border-slate-100 space-y-2.5">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block text-center">
-                    Registered Accounts ({customerRegistry.length}):
-                  </span>
-                  <div className="grid grid-cols-1 gap-2">
-                    {customerRegistry.map((c) => (
-                      <div
-                        key={c.id || c.mobile}
-                        onClick={() => onSwitchCustomer(c)}
-                        className="p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/60 border border-slate-200 hover:border-indigo-300 cursor-pointer transition flex items-center justify-between"
-                      >
-                        <div className="flex items-center space-x-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
-                            {c.name.slice(0, 1)}
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-900">{c.name}</p>
-                            <p className="text-[10px] text-slate-500 font-mono">Mobile: {c.mobile}</p>
-                          </div>
-                        </div>
-                        <span className="text-[11px] font-bold text-indigo-600 flex items-center space-x-1">
-                          <span>Sign In</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <div className="text-center pt-2">
                 <p className="text-xs text-slate-500">
                   Don't have an account yet?{' '}
@@ -854,23 +822,10 @@ export default function CustomerDashboard({
             <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-950 tracking-tight">
               Hey {currentCustomer?.name?.split(' ')[0] || 'Customer'},
             </h1>
-            <div className="relative inline-block">
-              <select
-                value={currentCustomer?.mobile || ''}
-                onChange={(e) => {
-                  const c = customerRegistry.find(cust => (cust.mobile || cust.phone) === e.target.value);
-                  if (c) onSwitchCustomer(c);
-                }}
-                className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-800 text-[11px] font-semibold rounded-full px-2.5 py-0.5 outline-none cursor-pointer transition"
-                title="Switch customer account"
-              >
-                {customerRegistry.map(c => (
-                  <option key={c.id || c.mobile} value={c.mobile || c.phone}>
-                    {c.name} ({c.mobile || c.phone})
-                  </option>
-                ))}
-              </select>
-            </div>
+            <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-zinc-100 text-zinc-700 border border-zinc-200">
+              <ShieldCheck className="w-3 h-3 text-emerald-600" />
+              <span>Customer Portal</span>
+            </span>
           </div>
           <p className="text-sm text-zinc-500 mt-1">
             Let's review and resolve damaged product claims efficiently.
