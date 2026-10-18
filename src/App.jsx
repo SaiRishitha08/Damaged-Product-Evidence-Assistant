@@ -4,6 +4,7 @@ import CustomerDashboard from './components/CustomerDashboard';
 import SellerDashboard from './components/SellerDashboard';
 import SupportReviewerConsole from './components/SupportReviewerConsole';
 import LoginDashboard from './components/LoginDashboard';
+import AuthLandingPage from './components/AuthLandingPage';
 import EvidenceDossierModal from './components/EvidenceDossierModal';
 import { 
   SAMPLE_BOOKED_PRODUCTS, 
@@ -33,7 +34,7 @@ import {
 } from './firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
-const DATA_VERSION = 'v7_clean_empty_manual_registration';
+const DATA_VERSION = 'v8_c12_ai_evidence_summary_dp1024';
 if (typeof window !== 'undefined') {
   if (localStorage.getItem('C12_DATA_VERSION') !== DATA_VERSION) {
     localStorage.removeItem('C12_EVIDENCE_CASES');
@@ -111,7 +112,7 @@ export default function App() {
         console.error('Failed to parse active seller', e);
       }
     }
-    return DEFAULT_SELLER_STORES[0] || null;
+    return null;
   });
 
   // Centralized Customer Orders (Partitioned per customer by mobile number)
@@ -553,44 +554,84 @@ export default function App() {
     showToast('Signed out successfully', 'info');
   };
 
-  // Customer Submits Case -> Auto-routes to Seller & Updates Order Status
+  // Seller Approves Refund
+  const handleApproveRefund = (caseId) => {
+    setEvidenceCases((prev) =>
+      prev.map(c => c.caseId === caseId ? { ...c, status: 'Refund Approved by Seller', sellerRefundAuthorized: true } : c)
+    );
+    const targetCase = evidenceCases.find(c => c.caseId === caseId);
+    if (targetCase) {
+      setCustomerOrders((prev) =>
+        prev.map(o => o.orderNo === targetCase.orderNo ? { ...o, status: 'Refund Approved (by Seller)', resolvedAs: 'REFUND' } : o)
+      );
+    }
+    showToast(`Refund authorized & approved by Seller for Case ${caseId}!`, 'success');
+  };
+
+  // Seller Declines Refund / Offers Replacement
+  const handleDeclineRefund = (caseId, counterOffer = 'REPLACE') => {
+    setEvidenceCases((prev) =>
+      prev.map(c => c.caseId === caseId ? { ...c, status: 'Seller Offered Free Replacement', sellerCounterOffer: counterOffer } : c)
+    );
+    const targetCase = evidenceCases.find(c => c.caseId === caseId);
+    if (targetCase) {
+      setCustomerOrders((prev) =>
+        prev.map(o => o.orderNo === targetCase.orderNo ? { ...o, status: 'Seller Counter-Offer (Replacement)', resolvedAs: 'REPLACE' } : o)
+      );
+    }
+    showToast(`Seller declined direct refund and offered free replacement for Case ${caseId}.`, 'info');
+  };
+
+  // Customer Submits Case -> Evaluates Automation Rules & Routes appropriately
   const handleSubmitCustomerCase = (newCase) => {
-    const isFraud = newCase.geminiReport?.authenticityStatus === 'FRAUD' || 
-                    (newCase.geminiReport?.fraudProbability || 0) > 50 || 
-                    newCase.geminiReport?.recommendation === 'CONTEST';
+    const decision = newCase.geminiReport?.decision;
+    const fraudProb = Number(newCase.geminiReport?.fraudProbability || 0);
+    const confScore = Number(newCase.geminiReport?.confidenceScore || 0);
+
+    const isFraud = decision?.type === 'AUTOMATED_CANCEL_FRAUD' || fraudProb > 75;
+    const isRefund = decision?.type === 'SELLER_REFUND_REVIEW' || (newCase.claimType || '').toLowerCase().includes('refund');
+    const isAutoReplace = (decision?.type === 'AUTOMATED_REPLACE' || (confScore > 75 && fraudProb <= 30)) && !isRefund && !isFraud;
+
+    let initialStatus = 'Under Review: Support Agent Decision Required';
+    let orderStatus = 'Claim Under Review';
+
+    if (isFraud) {
+      // RULE 2: Fraud > 75% -> Directly cancel claim!
+      initialStatus = 'Claim Cancelled: Fraud Discrepancy Detected';
+      orderStatus = 'Claim Cancelled (Suspected Fraud)';
+      showToast(`Notice: Claim ${newCase.caseId} automatically cancelled due to fraud probability > 75%.`, 'error');
+    } else if (isRefund) {
+      // RULE 3: ONLY refunds should approve by seller!
+      initialStatus = 'Pending Seller Refund Approval';
+      orderStatus = 'Awaiting Seller Refund Approval';
+      showToast(`Refund Request: Case ${newCase.caseId} requires merchant approval and has been routed to Seller.`, 'info');
+    } else if (isAutoReplace) {
+      // RULE 1: Confidence > 75% -> Automate approval of replace!
+      initialStatus = 'Automated Replacement Approved';
+      orderStatus = 'Replacement Approved (Automated AI)';
+      showToast(`Success: Claim ${newCase.caseId} automatically approved for Replacement (Confidence > 75%)!`, 'success');
+    } else {
+      // RULE 4: Support Agent Decision Required
+      showToast(`Case ${newCase.caseId} logged for human support review.`, 'info');
+    }
 
     const caseWithStatus = {
       ...newCase,
-      status: isFraud ? 'Flagged as Suspected Fraud by AI' : (newCase.status || 'Routed to Seller'),
-      fraudDetected: Boolean(isFraud)
+      status: initialStatus,
+      fraudDetected: Boolean(isFraud),
+      automatedDecision: isFraud || isAutoReplace
     };
 
-    setEvidenceCases((prev) => [caseWithStatus, ...prev]);
+    setEvidenceCases((prev) => [caseWithStatus, ...prev.filter(c => c.caseId !== newCase.caseId)]);
     saveCaseToFirestore(caseWithStatus);
 
-    // If Gemini recommended REFUND, RETURN, or flagged FRAUD/CONTEST, update customer order status
-    const rec = newCase.geminiReport?.recommendation?.toUpperCase();
-    if (isFraud || rec === 'CONTEST') {
-      setCustomerOrders((prev) =>
-        prev.map(o => o.orderNo === newCase.orderNo ? { ...o, status: 'Claim Flagged for Fraud Review', resolvedAs: 'CONTEST' } : o)
-      );
-      showToast(`Warning: Case ${newCase.caseId} flagged for potential fraud (${newCase.geminiReport?.fraudProbability || 90}% Risk) and routed to seller for contestation.`, 'error');
-    } else if (rec === 'REFUND') {
-      setCustomerOrders((prev) =>
-        prev.map(o => o.orderNo === newCase.orderNo ? { ...o, status: 'Refund Approved', resolvedAs: 'REFUND' } : o)
-      );
-      showToast(`Case ${newCase.caseId} verified as genuine and routed to Seller (${newCase.sellerName})!`, 'success');
-    } else if (rec === 'RETURN') {
-      setCustomerOrders((prev) =>
-        prev.map(o => o.orderNo === newCase.orderNo ? { ...o, status: 'Return Required', resolvedAs: 'RETURN' } : o)
-      );
-      showToast(`Case ${newCase.caseId} generated & routed to Seller (${newCase.sellerName}) with Return recommendation!`, 'success');
-    } else {
-      setCustomerOrders((prev) =>
-        prev.map(o => o.orderNo === newCase.orderNo ? { ...o, status: 'Replacement Approved', resolvedAs: 'REPLACE' } : o)
-      );
-      showToast(`Case ${newCase.caseId} verified as genuine and routed to Seller (${newCase.sellerName})!`, 'success');
-    }
+    setCustomerOrders((prev) =>
+      prev.map(o => o.orderNo === newCase.orderNo ? { 
+        ...o, 
+        status: orderStatus, 
+        resolvedAs: isAutoReplace ? 'REPLACE' : (isRefund ? 'REFUND' : (isFraud ? 'CONTEST' : 'UNDER_REVIEW'))
+      } : o)
+    );
   };
 
   // Seller Adds Packing Record -> syncs customer profile & adds order to that specific customer's list WITHOUT redirecting
@@ -716,98 +757,114 @@ export default function App() {
     }
   };
 
+  const isCustomerLoggedIn = Boolean(currentCustomer);
+  const isSellerLoggedIn = Boolean(currentSeller);
+  const isAuthPage = (!isCustomerLoggedIn && currentTab === 'customer') || (!isSellerLoggedIn && currentTab === 'seller') || currentTab === 'login';
+
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
-      
-      {/* Top Banner & Navigation */}
-      <Navbar
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
-        casesCount={evidenceCases.length}
-        sellerRecordsCount={sellerPackingRecords.length}
-        onResetData={handleResetData}
-        currentUser={
-          currentTab === 'customer'
-            ? (currentCustomer ? { ...currentCustomer, roleLabel: 'Customer' } : null)
-            : currentTab === 'seller'
-            ? (currentSeller ? { ...currentSeller, roleLabel: 'Seller' } : null)
-            : (currentUser || currentCustomer || currentSeller)
-        }
-        currentCustomer={currentCustomer}
-        currentSeller={currentSeller}
-        onLogout={handleLogout}
-        firebaseConnected={firebaseConnected}
-        onFetchFirebaseData={handleFetchFirebaseData}
-      />
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
-        {currentTab === 'customer' && (
-          <CustomerDashboard
+      {isAuthPage ? (
+        <AuthLandingPage
+          activeRole={currentTab === 'seller' ? 'seller' : 'customer'}
+          onRoleChange={(role) => setCurrentTab(role)}
+          customerRegistry={customerRegistry}
+          sellerRegistry={sellerRegistry}
+          onLoginCustomer={handleSwitchCustomer}
+          onLoginSeller={handleSwitchSeller}
+          onRegisterCustomer={handleRegisterCustomer}
+          onRegisterSeller={handleRegisterSeller}
+        />
+      ) : (
+        <>
+          {/* Top Banner & Navigation */}
+          <Navbar
+            currentTab={currentTab}
+            setCurrentTab={setCurrentTab}
+            casesCount={
+              currentTab === 'customer'
+                ? (currentCustomer ? evidenceCases.filter(c => normalizePhone(c.customerMobile || c.customerPhone) === normalizePhone(currentCustomer.mobile || currentCustomer.phone)).length : 0)
+                : evidenceCases.length
+            }
+            sellerRecordsCount={sellerPackingRecords.length}
+            onResetData={handleResetData}
+            currentUser={
+              currentTab === 'customer'
+                ? (currentCustomer ? { ...currentCustomer, roleLabel: 'Customer' } : null)
+                : currentTab === 'seller'
+                ? (currentSeller ? { ...currentSeller, roleLabel: 'Seller' } : null)
+                : (currentUser || currentCustomer || currentSeller)
+            }
             currentCustomer={currentCustomer}
-            onSwitchCustomer={handleSwitchCustomer}
-            onRegisterCustomer={handleRegisterCustomer}
-            onAddCustomerOrder={handleAddCustomerOrder}
-            customerOrders={customerOrders}
-            setCustomerOrders={setCustomerOrders}
-            sellerPackingRecords={sellerPackingRecords}
-            evidenceCases={evidenceCases}
-            customerRegistry={customerRegistry}
-            sellerRegistry={sellerRegistry}
-            onSubmitCase={handleSubmitCustomerCase}
-            onOpenDossierModal={(c) => setDossierModalCase(c)}
-            currentUser={currentUser}
+            currentSeller={currentSeller}
             onLogout={handleLogout}
+            firebaseConnected={firebaseConnected}
+            onFetchFirebaseData={handleFetchFirebaseData}
           />
-        )}
 
-        {currentTab === 'seller' && (
-          <SellerDashboard
-            activeSeller={currentSeller || sellerRegistry[0] || DEFAULT_SELLER_STORES[0]}
-            sellerRegistry={sellerRegistry.length > 0 ? sellerRegistry : DEFAULT_SELLER_STORES}
-            onSwitchSeller={handleSwitchSeller}
-            onRegisterSeller={handleRegisterSeller}
-            sellerPackingRecords={sellerPackingRecords}
-            evidenceCases={evidenceCases}
-            customerRegistry={customerRegistry}
-            onUpdateCustomerRegistry={handleSaveCustomerToDirectory}
-            onAddPackingRecord={handleAddPackingRecord}
-            onUpdatePackingRecord={handleUpdatePackingRecord}
-            onUpdateCaseStatus={handleUpdateCaseStatus}
-            onUpdateCase={handleUpdateCase}
-            onOpenDossierModal={(c) => setDossierModalCase(c)}
-            onLogout={handleLogout}
-          />
-        )}
+          {/* Main Content Area */}
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
+            {currentTab === 'customer' && (
+              <CustomerDashboard
+                currentCustomer={currentCustomer}
+                onSwitchCustomer={handleSwitchCustomer}
+                onRegisterCustomer={handleRegisterCustomer}
+                onAddCustomerOrder={handleAddCustomerOrder}
+                onSwitchToSeller={() => setCurrentTab('seller')}
+                customerOrders={customerOrders}
+                setCustomerOrders={setCustomerOrders}
+                sellerPackingRecords={sellerPackingRecords}
+                evidenceCases={evidenceCases}
+                customerRegistry={customerRegistry}
+                sellerRegistry={sellerRegistry}
+                onSubmitCase={handleSubmitCustomerCase}
+                onOpenDossierModal={(c) => setDossierModalCase(c)}
+                currentUser={currentUser}
+                onLogout={handleLogout}
+              />
+            )}
 
-        {currentTab === 'reviewer' && (
-          <SupportReviewerConsole 
-            onToast={showToast} 
-            evidenceCases={evidenceCases}
-            sellerPackingRecords={sellerPackingRecords}
-            onUpdateCase={handleUpdateCase}
-          />
-        )}
+            {currentTab === 'seller' && (
+              <SellerDashboard
+                activeSeller={currentSeller}
+                sellerRegistry={sellerRegistry.length > 0 ? sellerRegistry : DEFAULT_SELLER_STORES}
+                onSwitchSeller={handleSwitchSeller}
+                onRegisterSeller={handleRegisterSeller}
+                onLogin={handleLogin}
+                onSwitchToCustomer={() => setCurrentTab('customer')}
+                sellerPackingRecords={sellerPackingRecords}
+                evidenceCases={evidenceCases}
+                customerRegistry={customerRegistry}
+                onUpdateCustomerRegistry={handleSaveCustomerToDirectory}
+                onAddPackingRecord={handleAddPackingRecord}
+                onUpdatePackingRecord={handleUpdatePackingRecord}
+                onUpdateCaseStatus={handleUpdateCaseStatus}
+                onUpdateCase={handleUpdateCase}
+                onOpenDossierModal={(c) => setDossierModalCase(c)}
+                onApproveRefund={handleApproveRefund}
+                onDeclineRefund={handleDeclineRefund}
+                onLogout={handleLogout}
+              />
+            )}
 
-        {currentTab === 'login' && (
-          <LoginDashboard
-            customerRegistry={customerRegistry}
-            sellerRegistry={sellerRegistry}
-            onRegisterCustomer={handleRegisterCustomer}
-            onRegisterSeller={handleRegisterSeller}
-            onLogin={handleLogin}
-            onCancel={() => setCurrentTab('customer')}
-            currentUser={currentUser || currentCustomer || currentSeller}
-            onLogout={handleLogout}
-          />
-        )}
-      </main>
+            {currentTab === 'reviewer' && (
+              <SupportReviewerConsole 
+                onToast={showToast} 
+                evidenceCases={evidenceCases}
+                sellerPackingRecords={sellerPackingRecords}
+                onUpdateCase={handleUpdateCase}
+              />
+            )}
+          </main>
+        </>
+      )}
 
       {/* Interactive PDF / Case Dossier Modal */}
       <EvidenceDossierModal
         caseData={dossierModalCase}
         isOpen={Boolean(dossierModalCase)}
         onClose={() => setDossierModalCase(null)}
+        onApproveRefund={handleApproveRefund}
+        onDeclineRefund={handleDeclineRefund}
       />
 
       {/* Floating Toast Notification */}
@@ -828,21 +885,23 @@ export default function App() {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200/80 bg-white/80 backdrop-blur-md py-6 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span className="font-semibold text-slate-700">
-              Damaged Product Evidence Assistant (C12)
-            </span>
-            <span>· Fynd × NMIMS Hyderabad Simulation</span>
+      {/* Footer - only shown inside authenticated portal */}
+      {!isAuthPage && (
+        <footer className="border-t border-slate-200/80 bg-white/80 backdrop-blur-md py-6 text-xs text-slate-500">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center space-x-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span className="font-semibold text-slate-700">
+                Damaged Product Evidence Assistant (C12)
+              </span>
+              <span>· Fynd × NMIMS Hyderabad Simulation</span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Powered by Google Gemini 3.8 Flash Multimodal AI & certified camera truth separation.
+            </p>
           </div>
-          <p className="text-[11px] text-slate-500">
-            Powered by Google Gemini 3.8 Flash Multimodal AI & certified camera truth separation.
-          </p>
-        </div>
-      </footer>
+        </footer>
+      )}
 
     </div>
   );

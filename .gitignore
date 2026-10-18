@@ -28,3 +28,4 @@ Thumbs.db
 
 # AI agent workspace cache
 .gemini/
+.Rhistory

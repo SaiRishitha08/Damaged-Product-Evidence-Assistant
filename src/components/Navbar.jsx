@@ -19,7 +19,8 @@ import {
   LogIn,
   RotateCcw,
   Store,
-  UserCircle2
+  UserCircle2,
+  MapPin
 } from 'lucide-react';
 
 export default function Navbar({ 
@@ -67,136 +68,138 @@ export default function Navbar({
   }, []);
 
   const userName = isSellerMode
-    ? (currentSeller?.name || 'Apex Tech Store')
-    : (currentCustomer?.name || currentUser?.name || 'Kajal');
+    ? (currentSeller?.name || 'Merchant Login')
+    : (currentCustomer?.name || currentUser?.name || 'Customer Login');
   const userRole = isSellerMode
-    ? 'Verified Seller'
-    : (currentCustomer ? 'Customer' : (currentUser?.roleLabel || 'Support Agent'));
+    ? (currentSeller ? 'Verified Seller' : 'Not Logged In')
+    : (currentCustomer ? 'Customer' : 'Not Logged In');
   const userInitials = userName
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
     .map(w => w[0].toUpperCase())
-    .join('') || (isSellerMode ? 'AP' : 'KA');
+    .join('') || (isSellerMode ? 'SL' : 'CU');
 
-  // Navigation Items matching the active portal mode
+  // Navigation Items matching the active portal mode strictly (No cross-portal options)
   const navItems = isSellerMode
-    ? [
-        {
-          id: 'dashboard',
-          label: 'Dashboard',
-          icon: LayoutDashboard,
-          badge: null,
-          isActive: activeSellerSubtab === 'analytics',
-          onClick: () => {
-            setCurrentTab('seller');
-            setActiveSellerSubtab('analytics');
-            window.dispatchEvent(new CustomEvent('nav-seller-subtab', { detail: 'analytics' }));
-          }
-        },
-        {
-          id: 'new-record',
-          label: 'New Dispatch',
-          icon: PlusCircle,
-          badge: null,
-          isActive: activeSellerSubtab === 'new-record',
-          onClick: () => {
-            setCurrentTab('seller');
-            setActiveSellerSubtab('new-record');
-            window.dispatchEvent(new CustomEvent('nav-seller-subtab', { detail: 'new-record' }));
-          }
-        },
-        {
-          id: 'cases',
-          label: 'Cases',
-          icon: FileText,
-          badge: casesCount > 0 ? casesCount : null,
-          isActive: activeSellerSubtab === 'cases',
-          onClick: () => {
-            setCurrentTab('seller');
-            setActiveSellerSubtab('cases');
-            window.dispatchEvent(new CustomEvent('nav-seller-subtab', { detail: 'cases' }));
-          }
-        },
-        {
-          id: 'catalog',
-          label: 'Packaging Vault',
-          icon: ShoppingBag,
-          badge: sellerRecordsCount > 0 ? sellerRecordsCount : null,
-          isActive: activeSellerSubtab === 'catalog',
-          onClick: () => {
-            setCurrentTab('seller');
-            setActiveSellerSubtab('catalog');
-            window.dispatchEvent(new CustomEvent('nav-seller-subtab', { detail: 'catalog' }));
-          }
-        },
-        {
-          id: 'customer-portal-toggle',
-          label: 'Customer Portal',
-          icon: UserCircle2,
-          badge: null,
-          isActive: false,
-          onClick: () => setCurrentTab('customer')
-        }
-      ]
-    : [
-        {
-          id: 'dashboard',
-          label: 'Dashboard',
-          icon: LayoutDashboard,
-          badge: null,
-          isActive: activeCustomerSubtab === 'report',
-          onClick: () => {
-            setCurrentTab('customer');
-            setActiveCustomerSubtab('report');
-            window.dispatchEvent(new CustomEvent('nav-customer-subtab', { detail: 'report' }));
-          }
-        },
-        {
-          id: 'new-claim',
-          label: 'New Claim',
-          icon: PlusCircle,
-          badge: null,
-          isActive: activeCustomerSubtab === 'report',
-          onClick: () => {
-            setCurrentTab('customer');
-            setActiveCustomerSubtab('report');
-            window.dispatchEvent(new CustomEvent('nav-customer-subtab', { detail: 'report' }));
-          }
-        },
-        {
-          id: 'cases',
-          label: 'Cases',
-          icon: FileText,
-          badge: casesCount > 0 ? casesCount : '2',
-          isActive: activeCustomerSubtab === 'disputes',
-          onClick: () => {
-            setCurrentTab('customer');
-            setActiveCustomerSubtab('disputes');
-            window.dispatchEvent(new CustomEvent('nav-customer-subtab', { detail: 'disputes' }));
-          }
-        },
-        {
-          id: 'orders',
-          label: 'Orders',
-          icon: ShoppingBag,
-          badge: null,
-          isActive: activeCustomerSubtab === 'orders',
-          onClick: () => {
-            setCurrentTab('customer');
-            setActiveCustomerSubtab('orders');
-            window.dispatchEvent(new CustomEvent('nav-customer-subtab', { detail: 'orders' }));
-          }
-        },
-        {
-          id: 'seller-portal-toggle',
-          label: 'Seller Portal',
-          icon: Store,
-          badge: null,
-          isActive: false,
-          onClick: () => setCurrentTab('seller')
-        }
-      ];
+    ? (isSellerLoggedIn
+        ? [
+            {
+              id: 'dashboard',
+              label: 'Dashboard',
+              icon: LayoutDashboard,
+              badge: null,
+              isActive: activeSellerSubtab === 'analytics',
+              onClick: () => {
+                setCurrentTab('seller');
+                setActiveSellerSubtab('analytics');
+                window.dispatchEvent(new CustomEvent('nav-seller-subtab', { detail: 'analytics' }));
+              }
+            },
+            {
+              id: 'new-record',
+              label: 'New Dispatch',
+              icon: PlusCircle,
+              badge: null,
+              isActive: activeSellerSubtab === 'new-record',
+              onClick: () => {
+                setCurrentTab('seller');
+                setActiveSellerSubtab('new-record');
+                window.dispatchEvent(new CustomEvent('nav-seller-subtab', { detail: 'new-record' }));
+              }
+            },
+            {
+              id: 'cases',
+              label: 'Cases',
+              icon: FileText,
+              badge: casesCount > 0 ? casesCount : null,
+              isActive: activeSellerSubtab === 'cases',
+              onClick: () => {
+                setCurrentTab('seller');
+                setActiveSellerSubtab('cases');
+                window.dispatchEvent(new CustomEvent('nav-seller-subtab', { detail: 'cases' }));
+              }
+            },
+            {
+              id: 'catalog',
+              label: 'Packaging Vault',
+              icon: ShoppingBag,
+              badge: sellerRecordsCount > 0 ? sellerRecordsCount : null,
+              isActive: activeSellerSubtab === 'catalog',
+              onClick: () => {
+                setCurrentTab('seller');
+                setActiveSellerSubtab('catalog');
+                window.dispatchEvent(new CustomEvent('nav-seller-subtab', { detail: 'catalog' }));
+              }
+            }
+          ]
+        : []
+      )
+    : (isCustomerLoggedIn
+        ? [
+            {
+              id: 'dashboard',
+              label: 'Dashboard',
+              icon: LayoutDashboard,
+              badge: null,
+              isActive: activeCustomerSubtab === 'report',
+              onClick: () => {
+                setCurrentTab('customer');
+                setActiveCustomerSubtab('report');
+                window.dispatchEvent(new CustomEvent('nav-customer-subtab', { detail: 'report' }));
+              }
+            },
+            {
+              id: 'new-claim',
+              label: 'New Claim',
+              icon: PlusCircle,
+              badge: null,
+              isActive: activeCustomerSubtab === 'report',
+              onClick: () => {
+                setCurrentTab('customer');
+                setActiveCustomerSubtab('report');
+                window.dispatchEvent(new CustomEvent('nav-customer-subtab', { detail: 'report' }));
+              }
+            },
+            {
+              id: 'cases',
+              label: 'Claims & Dockets',
+              icon: FileText,
+              badge: casesCount > 0 ? casesCount : null,
+              isActive: activeCustomerSubtab === 'disputes',
+              onClick: () => {
+                setCurrentTab('customer');
+                setActiveCustomerSubtab('disputes');
+                window.dispatchEvent(new CustomEvent('nav-customer-subtab', { detail: 'disputes' }));
+              }
+            },
+            {
+              id: 'orders',
+              label: 'My Orders',
+              icon: ShoppingBag,
+              badge: null,
+              isActive: activeCustomerSubtab === 'orders',
+              onClick: () => {
+                setCurrentTab('customer');
+                setActiveCustomerSubtab('orders');
+                window.dispatchEvent(new CustomEvent('nav-customer-subtab', { detail: 'orders' }));
+              }
+            },
+            {
+              id: 'profile',
+              label: 'Delivery Profile',
+              icon: MapPin,
+              badge: null,
+              isActive: activeCustomerSubtab === 'profile',
+              onClick: () => {
+                setCurrentTab('customer');
+                setActiveCustomerSubtab('profile');
+                window.dispatchEvent(new CustomEvent('nav-customer-subtab', { detail: 'profile' }));
+              }
+            }
+          ]
+        : []
+      );
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-zinc-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.03)] font-['Plus_Jakarta_Sans',sans-serif]">
@@ -260,6 +263,21 @@ export default function Navbar({
                 </button>
               );
             })}
+
+            {/* Support Reviewer Console Link */}
+            <button
+              type="button"
+              onClick={() => setCurrentTab('reviewer')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                currentTab === 'reviewer'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100'
+              }`}
+              title="Support Reviewer Console (Human Decision Maker)"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Support Console</span>
+            </button>
           </nav>
 
           {/* Right Controls: Search, Theme, Notifications, Profile & Firebase */}
@@ -312,9 +330,19 @@ export default function Navbar({
 
             {/* User Profile Pill matching screenshot: Circular black avatar with initials KA */}
             <div 
-              onClick={() => setCurrentTab('login')}
+              onClick={() => {
+                if (currentTab === 'customer') {
+                  setActiveCustomerSubtab('profile');
+                  window.dispatchEvent(new CustomEvent('nav-customer-subtab', { detail: 'profile' }));
+                } else if (currentTab === 'seller') {
+                  setActiveSellerSubtab('analytics');
+                  window.dispatchEvent(new CustomEvent('nav-seller-subtab', { detail: 'analytics' }));
+                } else {
+                  setCurrentTab('login');
+                }
+              }}
               className="flex items-center space-x-2 pl-1 pr-2.5 py-1 rounded-full hover:bg-zinc-100 border border-transparent hover:border-zinc-200 transition cursor-pointer"
-              title="Click to view accounts or switch"
+              title="Click to view profile"
             >
               <div className="w-8 h-8 rounded-full bg-zinc-950 text-white font-bold text-xs flex items-center justify-center tracking-wider shrink-0 shadow-2xs">
                 {userInitials}

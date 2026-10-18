@@ -44,18 +44,22 @@ import {
   X,
   Trash2,
   Boxes,
+  Box,
   Clock
 } from 'lucide-react';
 import { generateCustomerEvidencePDF, generateSellerDossierPDF, generateGeminiAIEvidencePDF } from '../utils/pdfGenerator';
 import { MARKETPLACE_SELLERS, CURRENT_SELLER, DEFAULT_SELLER_STORES } from '../data/initialData';
 import { analyzeDamageWithGemini } from '../utils/geminiAnalyzer';
 import { findCustomerByMobile, normalizePhone, DEFAULT_CUSTOMER_PROFILES } from '../data/customerDirectory';
+import AuthLandingPage from './AuthLandingPage';
 
 export default function SellerDashboard({ 
   activeSeller = null,
   sellerRegistry = [],
   onSwitchSeller,
   onRegisterSeller,
+  onLogin,
+  onSwitchToCustomer,
   sellerPackingRecords = [], 
   evidenceCases = [], 
   customerRegistry = [],
@@ -65,20 +69,14 @@ export default function SellerDashboard({
   onUpdateCaseStatus,
   onUpdateCase,
   onOpenDossierModal,
+  onApproveRefund,
+  onDeclineRefund,
   onLogout
 }) {
-  const effectiveSeller = activeSeller || (sellerRegistry && sellerRegistry.length > 0 ? sellerRegistry[0] : null) || CURRENT_SELLER || DEFAULT_SELLER_STORES[0] || {
-    id: 'SLR-1001',
-    name: 'Apex Tech & Retail Solutions',
-    marketplacePartner: 'Fynd Marketplace Direct',
-    hub: 'Bhiwandi Central Fulfillment Hub, Mumbai',
-    dispatchCompliance: '100%',
-    rating: 5.0,
-    category: 'Electronics & Retail'
-  };
+  const effectiveSeller = activeSeller;
 
   const displayStores = (sellerRegistry && sellerRegistry.length > 0)
-    ? (sellerRegistry.some(s => s.id === effectiveSeller?.id) ? sellerRegistry : [effectiveSeller, ...sellerRegistry])
+    ? (sellerRegistry.some(s => s.id === effectiveSeller?.id) ? sellerRegistry : [effectiveSeller, ...sellerRegistry].filter(Boolean))
     : DEFAULT_SELLER_STORES;
 
   const [activeSubTab, setActiveSubTab] = useState('analytics'); // 'analytics' | 'cases' | 'new-record' | 'catalog'
@@ -132,11 +130,12 @@ export default function SellerDashboard({
       return;
     }
     const query = sellerLoginId.trim().toLowerCase();
-    const found = sellerRegistry.find(s => s.id.toLowerCase() === query || s.name.toLowerCase().includes(query));
+    const effectiveList = (sellerRegistry && sellerRegistry.length > 0) ? sellerRegistry : DEFAULT_SELLER_STORES;
+    const found = effectiveList.find(s => s.id.toLowerCase() === query || s.name.toLowerCase().includes(query));
     if (found) {
       if (onSwitchSeller) onSwitchSeller(found);
     } else {
-      setSellerLoginError(`No store found matching "${sellerLoginId}". Click "Sign Up" below to register.`);
+      setSellerLoginError(`No store found matching "${sellerLoginId}". Try "SLR-1001" or register store below.`);
     }
   };
 
@@ -490,6 +489,23 @@ export default function SellerDashboard({
   const getMatchingPackingRecord = (orderNo) => {
     return sellerPackingRecords.find((r) => r.orderNo === orderNo) || null;
   };
+
+  // If no seller is authenticated / logged in yet, show clean split-screen landing page
+  if (!activeSeller) {
+    return (
+      <AuthLandingPage
+        activeRole="seller"
+        onRoleChange={(role) => {
+          if (role === 'customer' && onSwitchToCustomer) onSwitchToCustomer();
+        }}
+        customerRegistry={customerRegistry}
+        sellerRegistry={sellerRegistry}
+        onLoginSeller={onSwitchSeller}
+        onLoginCustomer={onSwitchToCustomer}
+        onRegisterSeller={onRegisterSeller}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 pb-16 font-['Plus_Jakarta_Sans',sans-serif]">
@@ -2139,13 +2155,32 @@ export default function SellerDashboard({
 
                     <button
                       onClick={() => {
-                        onUpdateCaseStatus(selectedCaseForReview.caseId, 'Refund Approved by Seller');
-                        alert('Seller approved monetary refund. Bank disbursement initiated.');
+                        if (onApproveRefund) {
+                          onApproveRefund(selectedCaseForReview.caseId);
+                        } else {
+                          onUpdateCaseStatus(selectedCaseForReview.caseId, 'Refund Approved by Seller');
+                        }
+                        alert('Seller authorized and approved customer monetary refund. Bank disbursement initiated.');
                       }}
                       className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-xs"
                     >
                       <DollarSign className="w-3.5 h-3.5 text-sky-600" />
-                      <span>Approve Refund</span>
+                      <span>Authorize Refund (Seller Only)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (onDeclineRefund) {
+                          onDeclineRefund(selectedCaseForReview.caseId);
+                        } else {
+                          onUpdateCaseStatus(selectedCaseForReview.caseId, 'Refund Declined by Seller: Replacement Offered');
+                        }
+                        alert('Refund declined by seller; free replacement offered.');
+                      }}
+                      className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-xs"
+                    >
+                      <X className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Decline Refund / Offer Replace</span>
                     </button>
 
                     <button
@@ -2178,6 +2213,14 @@ export default function SellerDashboard({
                       className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-semibold transition shadow-xs"
                     >
                       <span>Contest Claim</span>
+                    </button>
+
+                    <button
+                      onClick={() => onOpenDossierModal && onOpenDossierModal(selectedCaseForReview)}
+                      className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-xs"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Open AI Evidence Summary (C12)</span>
                     </button>
 
                     <button

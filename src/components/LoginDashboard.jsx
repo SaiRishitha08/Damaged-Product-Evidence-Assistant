@@ -348,38 +348,6 @@ export default function LoginDashboard({
                   </button>
                 </form>
 
-                {/* Quick 1-Click Select for Registered Customers */}
-                {customerRegistry.length > 0 && (
-                  <div className="pt-4 border-t border-slate-100 space-y-3">
-                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block text-center">
-                      Or 1-Click Sign In as Registered Customer ({customerRegistry.length}):
-                    </span>
-                    <div className="grid grid-cols-1 gap-2.5">
-                      {customerRegistry.map((c) => (
-                        <div
-                          key={c.id || c.mobile}
-                          onClick={() => onLogin({ ...c, role: 'customer', roleLabel: 'Customer / Buyer' })}
-                          className="p-3.5 rounded-2xl bg-slate-50 hover:bg-indigo-50/60 border border-slate-200 hover:border-indigo-300 cursor-pointer transition shadow-2xs flex items-center justify-between"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="w-9 h-9 rounded-xl bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold text-xs">
-                              {c.name.slice(0, 1)}
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-bold text-slate-900">{c.name}</h4>
-                              <p className="text-[11px] text-indigo-700 font-mono">Mobile: {c.mobile}</p>
-                            </div>
-                          </div>
-                          <span className="text-[11px] font-bold text-indigo-600 flex items-center space-x-1">
-                            <span>Sign In</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 <div className="text-center pt-2">
                   <p className="text-xs text-slate-500">
                     Don't have an account yet?{' '}
@@ -611,38 +579,6 @@ export default function LoginDashboard({
                     <span>Sign In to Seller Dashboard</span>
                   </button>
                 </form>
-
-                {/* Quick 1-Click Select for Registered Sellers */}
-                {effectiveSellerRegistry.length > 0 && (
-                  <div className="pt-4 border-t border-slate-100 space-y-3">
-                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block text-center">
-                      Or 1-Click Sign In as Registered Merchant ({effectiveSellerRegistry.length}):
-                    </span>
-                    <div className="grid grid-cols-1 gap-2.5">
-                      {effectiveSellerRegistry.map((s) => (
-                        <div
-                          key={s.id}
-                          onClick={() => onLogin({ ...s, role: 'seller', roleLabel: 'Seller / Merchant' })}
-                          className="p-3.5 rounded-2xl bg-slate-50 hover:bg-emerald-50/60 border border-slate-200 hover:border-emerald-300 cursor-pointer transition shadow-2xs flex items-center justify-between"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 font-bold text-xs">
-                              <Store className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <h4 className="text-xs font-bold text-slate-900">{s.name}</h4>
-                              <p className="text-[11px] text-indigo-700 font-mono font-bold">ID: {s.id}</p>
-                            </div>
-                          </div>
-                          <span className="text-[11px] font-bold text-emerald-700 flex items-center space-x-1">
-                            <span>Open Store</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 <div className="text-center pt-2">
                   <p className="text-xs text-slate-500">

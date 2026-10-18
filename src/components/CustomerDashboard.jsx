@@ -59,6 +59,8 @@ import {
   getOrdersForCustomer,
   getCustomerMetrics
 } from '../data/customerDirectory';
+import OtpVerificationModal from './OtpVerificationModal';
+import AuthLandingPage from './AuthLandingPage';
 
 export default function CustomerDashboard({ 
   currentCustomer = null,
@@ -74,7 +76,8 @@ export default function CustomerDashboard({
   onSubmitCase, 
   onOpenDossierModal,
   currentUser,
-  onLogout
+  onLogout,
+  onSwitchToSeller
 }) {
   // Sub-tabs: 'report' | 'orders' | 'disputes' | 'profile'
   const [customerSubTab, setCustomerSubTab] = useState('report');
@@ -82,6 +85,8 @@ export default function CustomerDashboard({
   // Registration & Add Order Modal / Drawer States
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showAddOrderModal, setShowAddOrderModal] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [pendingRegistration, setPendingRegistration] = useState(null);
 
   // Auth state for unauthenticated customer view: 'login' | 'signup'
   const [authMode, setAuthMode] = useState(() => customerRegistry.length > 0 ? 'login' : 'signup');
@@ -320,20 +325,28 @@ export default function CustomerDashboard({
       return;
     }
 
-    if (onRegisterCustomer) {
-      onRegisterCustomer({
-        name: regName.trim(),
-        mobile: cleanMobile,
-        phone: `+91 ${cleanMobile.slice(0, 5)} ${cleanMobile.slice(5)}`,
-        password: regPassword.trim() || 'password123',
-        email: regEmail.trim() || `${cleanMobile}@customer.fynd.com`,
-        address: regAddress.trim() || 'Standard Delivery Address',
-        city: regCity.trim() || 'Hyderabad',
-        state: regState.trim() || 'Telangana',
-        pincode: regPincode.trim() || '500033'
-      });
-    }
+    const newCustomer = {
+      name: regName.trim(),
+      mobile: cleanMobile,
+      phone: `+91 ${cleanMobile.slice(0, 5)} ${cleanMobile.slice(5)}`,
+      password: regPassword.trim() || 'password123',
+      email: regEmail.trim() || `${cleanMobile}@customer.fynd.com`,
+      address: regAddress.trim() || 'Standard Delivery Address',
+      city: regCity.trim() || 'Hyderabad',
+      state: regState.trim() || 'Telangana',
+      pincode: regPincode.trim() || '500033'
+    };
 
+    setPendingRegistration(newCustomer);
+    setShowOtpModal(true);
+  };
+
+  const handleOtpVerified = () => {
+    if (pendingRegistration && onRegisterCustomer) {
+      onRegisterCustomer(pendingRegistration);
+    }
+    setShowOtpModal(false);
+    setPendingRegistration(null);
     setRegName('');
     setRegMobile('');
     setRegPassword('');
@@ -461,6 +474,8 @@ export default function CustomerDashboard({
       // 3. Dispatch & route the completed docket to the Seller!
       onSubmitCase(casePayload);
       setSubmissionSuccess(casePayload);
+      setEvidenceImages([]);
+      setCustomerClaim('');
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
@@ -471,341 +486,33 @@ export default function CustomerDashboard({
     }
   };
 
-  // If no customer is logged in / registered yet, show clean Login and Sign Up view
+  // If no customer is logged in / registered yet, show clean split-screen landing page
   if (!currentCustomer) {
     return (
-      <div className="max-w-xl mx-auto py-10 px-4 animate-fade-in space-y-6">
-        <div className="bg-white border border-slate-200/90 rounded-3xl p-8 sm:p-10 shadow-sm space-y-6 text-center">
-          
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center mx-auto text-indigo-600 shadow-2xs">
-            <User className="w-8 h-8" />
-          </div>
-
-          <div>
-            <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
-              Customer Portal Authentication
-            </span>
-            <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight mt-2">
-              {authMode === 'login' ? 'Customer Login' : 'Customer Sign Up'}
-            </h2>
-            <p className="text-xs text-slate-500 max-w-md mx-auto mt-1 leading-relaxed">
-              {authMode === 'login'
-                ? 'Sign in with your 10-digit mobile number and password to manage orders and report damages.'
-                : 'Create your customer profile with your 10-digit mobile number and password.'}
-            </p>
-          </div>
-
-          {/* Login vs Sign Up Pill Toggle */}
-          <div className="flex justify-center">
-            <div className="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode('login');
-                  setLoginError('');
-                }}
-                className={`px-5 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
-                  authMode === 'login'
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Login</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode('signup');
-                  setLoginError('');
-                }}
-                className={`px-5 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 ${
-                  authMode === 'signup'
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>Sign Up</span>
-              </button>
-            </div>
-          </div>
-
-          {/* ======================================================== */}
-          {/* TAB 1: LOGIN (MOBILE NUMBER & PASSWORD) */}
-          {/* ======================================================== */}
-          {authMode === 'login' && (
-            <form onSubmit={handleCustomerLoginSubmit} className="text-left space-y-4 pt-1 animate-fade-in">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  10-Digit Mobile Number *
-                </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                  <input
-                    type="tel"
-                    required
-                    maxLength={10}
-                    value={loginMobile}
-                    onChange={(e) => {
-                      setLoginMobile(e.target.value);
-                      setLoginError('');
-                    }}
-                    placeholder="e.g. 9811230491"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-slate-900 font-mono font-medium focus:bg-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Password *
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                  <input
-                    type={showLoginPassword ? "text" : "password"}
-                    required
-                    value={loginPassword}
-                    onChange={(e) => {
-                      setLoginPassword(e.target.value);
-                      setLoginError('');
-                    }}
-                    placeholder="Enter your password"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-10 pr-10 py-2.5 text-xs text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowLoginPassword(!showLoginPassword)}
-                    className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600"
-                  >
-                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {loginError && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start space-x-2">
-                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                  <span>{loginError}</span>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center space-x-2 mt-2"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Login & Open Customer Dashboard</span>
-              </button>
-
-              {/* Quick 1-Click login if registered customers exist */}
-              {customerRegistry.length > 0 && (
-                <div className="pt-4 border-t border-slate-100 space-y-2.5">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block text-center">
-                    Registered Accounts ({customerRegistry.length}):
-                  </span>
-                  <div className="grid grid-cols-1 gap-2">
-                    {customerRegistry.map((c) => (
-                      <div
-                        key={c.id || c.mobile}
-                        onClick={() => onSwitchCustomer(c)}
-                        className="p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/60 border border-slate-200 hover:border-indigo-300 cursor-pointer transition flex items-center justify-between"
-                      >
-                        <div className="flex items-center space-x-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
-                            {c.name.slice(0, 1)}
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-900">{c.name}</p>
-                            <p className="text-[10px] text-slate-500 font-mono">Mobile: {c.mobile}</p>
-                          </div>
-                        </div>
-                        <span className="text-[11px] font-bold text-indigo-600 flex items-center space-x-1">
-                          <span>Sign In</span>
-                          <ArrowRight className="w-3 h-3" />
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="text-center pt-2">
-                <p className="text-xs text-slate-500">
-                  Don't have an account yet?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthMode('signup');
-                      setLoginError('');
-                    }}
-                    className="text-indigo-600 font-bold hover:underline"
-                  >
-                    Sign Up here
-                  </button>
-                </p>
-              </div>
-            </form>
-          )}
-
-          {/* ======================================================== */}
-          {/* TAB 2: SIGN UP (CREATE PROFILE & PASSWORD) */}
-          {/* ======================================================== */}
-          {authMode === 'signup' && (
-            <form onSubmit={handleRegisterCustomerSubmit} className="text-left space-y-3.5 pt-1 animate-fade-in">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Full Customer Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    placeholder="e.g. Vivek Kumar"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    10-Digit Mobile Number *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    maxLength={10}
-                    value={regMobile}
-                    onChange={(e) => setRegMobile(e.target.value)}
-                    placeholder="e.g. 9811230491"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-mono font-medium focus:bg-white focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Create Password *
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type={showRegPassword ? "text" : "password"}
-                    required
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    placeholder="Create your customer password"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-9 py-2 text-xs text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-indigo-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowRegPassword(!showRegPassword)}
-                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
-                  >
-                    {showRegPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Email Address (Optional)
-                </label>
-                <input
-                  type="email"
-                  value={regEmail}
-                  onChange={(e) => setRegEmail(e.target.value)}
-                  placeholder="e.g. vivek@example.com"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Delivery Street Address
-                </label>
-                <input
-                  type="text"
-                  value={regAddress}
-                  onChange={(e) => setRegAddress(e.target.value)}
-                  placeholder="e.g. Flat 402, Green Meadows, Jubilee Hills"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-2.5">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    value={regCity}
-                    onChange={(e) => setRegCity(e.target.value)}
-                    placeholder="Hyderabad"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    State
-                  </label>
-                  <input
-                    type="text"
-                    value={regState}
-                    onChange={(e) => setRegState(e.target.value)}
-                    placeholder="Telangana"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-medium focus:bg-white focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Pincode
-                  </label>
-                  <input
-                    type="text"
-                    value={regPincode}
-                    onChange={(e) => setRegPincode(e.target.value)}
-                    placeholder="500033"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono font-medium focus:bg-white focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center space-x-2"
-                >
-                  <UserCheck className="w-4 h-4" />
-                  <span>Register Profile & Open Dashboard</span>
-                </button>
-              </div>
-
-              <div className="text-center pt-1">
-                <p className="text-xs text-slate-500">
-                  Already registered?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthMode('login');
-                      setLoginError('');
-                    }}
-                    className="text-indigo-600 font-bold hover:underline"
-                  >
-                    Login here
-                  </button>
-                </p>
-              </div>
-            </form>
-          )}
-
-        </div>
-      </div>
+      <AuthLandingPage
+        activeRole="customer"
+        onRoleChange={(role) => {
+          if (role === 'seller' && onSwitchToSeller) onSwitchToSeller();
+        }}
+        customerRegistry={customerRegistry}
+        sellerRegistry={sellerRegistry}
+        onLoginCustomer={onSwitchCustomer}
+        onLoginSeller={onSwitchToSeller}
+        onRegisterCustomer={onRegisterCustomer}
+      />
     );
   }
+
+  // Dynamic progress through the 5-step dispute claim workflow
+  const currentStep = submissionSuccess 
+    ? 5 
+    : isAnalyzingGemini 
+      ? 4 
+      : evidenceImages.length > 0 
+        ? 3 
+        : customerClaim.trim().length > 0 
+          ? 2 
+          : 1;
 
   return (
     <div className="space-y-6 pb-16 font-['Plus_Jakarta_Sans',sans-serif]">
@@ -817,25 +524,12 @@ export default function CustomerDashboard({
         <div>
           <div className="flex items-center space-x-2.5 flex-wrap gap-y-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-950 tracking-tight">
-              Hey {currentCustomer?.name?.split(' ')[0] || 'Kajal'},
+              Hey {currentCustomer?.name?.split(' ')[0] || 'Customer'},
             </h1>
-            <div className="relative inline-block">
-              <select
-                value={currentCustomer?.mobile || ''}
-                onChange={(e) => {
-                  const c = customerRegistry.find(cust => (cust.mobile || cust.phone) === e.target.value);
-                  if (c) onSwitchCustomer(c);
-                }}
-                className="bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-zinc-800 text-[11px] font-semibold rounded-full px-2.5 py-0.5 outline-none cursor-pointer transition"
-                title="Switch customer account"
-              >
-                {customerRegistry.map(c => (
-                  <option key={c.id || c.mobile} value={c.mobile || c.phone}>
-                    {c.name} ({c.mobile || c.phone})
-                  </option>
-                ))}
-              </select>
-            </div>
+            <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-zinc-100 text-zinc-700 border border-zinc-200">
+              <ShieldCheck className="w-3 h-3 text-emerald-600" />
+              <span>Customer Portal</span>
+            </span>
           </div>
           <p className="text-sm text-zinc-500 mt-1">
             Let's review and resolve damaged product claims efficiently.
@@ -933,11 +627,19 @@ export default function CustomerDashboard({
           
           {/* Step 1 */}
           <div className="flex items-center space-x-2.5 shrink-0">
-            <span className="w-6 h-6 rounded-full bg-zinc-950 text-white font-bold text-[11px] flex items-center justify-center">
-              1
+            <span className={`w-6 h-6 rounded-full font-bold text-[11px] flex items-center justify-center transition ${
+              currentStep > 1 
+                ? 'bg-emerald-600 text-white' 
+                : currentStep === 1 
+                  ? 'bg-zinc-950 text-white ring-2 ring-zinc-400 ring-offset-1' 
+                  : 'bg-zinc-100 text-zinc-700 border border-zinc-200'
+            }`}>
+              {currentStep > 1 ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '1'}
             </span>
             <div>
-              <span className="font-bold text-zinc-950 block leading-tight">Order & Product</span>
+              <span className={`block leading-tight ${currentStep >= 1 ? 'font-bold text-zinc-950' : 'font-semibold text-zinc-500'}`}>
+                Order & Product
+              </span>
               <span className="text-[10px] text-zinc-500 hidden sm:block">Select order and product details</span>
             </div>
           </div>
@@ -945,11 +647,19 @@ export default function CustomerDashboard({
 
           {/* Step 2 */}
           <div className="flex items-center space-x-2.5 shrink-0">
-            <span className="w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 font-bold text-[11px] flex items-center justify-center border border-zinc-200">
-              2
+            <span className={`w-6 h-6 rounded-full font-bold text-[11px] flex items-center justify-center transition ${
+              currentStep > 2 
+                ? 'bg-emerald-600 text-white' 
+                : currentStep === 2 
+                  ? 'bg-zinc-950 text-white ring-2 ring-zinc-400 ring-offset-1' 
+                  : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+            }`}>
+              {currentStep > 2 ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '2'}
             </span>
             <div>
-              <span className="font-semibold text-zinc-700 block leading-tight">Damage Details</span>
+              <span className={`block leading-tight ${currentStep >= 2 ? 'font-bold text-zinc-950' : 'font-medium text-zinc-500'}`}>
+                Damage Details
+              </span>
               <span className="text-[10px] text-zinc-400 hidden sm:block">Describe the issue</span>
             </div>
           </div>
@@ -957,11 +667,19 @@ export default function CustomerDashboard({
 
           {/* Step 3 */}
           <div className="flex items-center space-x-2.5 shrink-0">
-            <span className="w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 font-bold text-[11px] flex items-center justify-center border border-zinc-200">
-              3
+            <span className={`w-6 h-6 rounded-full font-bold text-[11px] flex items-center justify-center transition ${
+              currentStep > 3 
+                ? 'bg-emerald-600 text-white' 
+                : currentStep === 3 
+                  ? 'bg-zinc-950 text-white ring-2 ring-zinc-400 ring-offset-1' 
+                  : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+            }`}>
+              {currentStep > 3 ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '3'}
             </span>
             <div>
-              <span className="font-semibold text-zinc-700 block leading-tight">Upload Evidence</span>
+              <span className={`block leading-tight ${currentStep >= 3 ? 'font-bold text-zinc-950' : 'font-medium text-zinc-500'}`}>
+                Upload Evidence
+              </span>
               <span className="text-[10px] text-zinc-400 hidden sm:block">Add 4-5 clear photos</span>
             </div>
           </div>
@@ -969,11 +687,19 @@ export default function CustomerDashboard({
 
           {/* Step 4 */}
           <div className="flex items-center space-x-2.5 shrink-0">
-            <span className="w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 font-bold text-[11px] flex items-center justify-center border border-zinc-200">
-              4
+            <span className={`w-6 h-6 rounded-full font-bold text-[11px] flex items-center justify-center transition ${
+              currentStep > 4 
+                ? 'bg-emerald-600 text-white' 
+                : currentStep === 4 
+                  ? 'bg-zinc-950 text-white ring-2 ring-zinc-400 ring-offset-1' 
+                  : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+            }`}>
+              {currentStep > 4 ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '4'}
             </span>
             <div>
-              <span className="font-semibold text-zinc-700 block leading-tight">AI Analysis</span>
+              <span className={`block leading-tight ${currentStep >= 4 ? 'font-bold text-zinc-950' : 'font-medium text-zinc-500'}`}>
+                AI Analysis
+              </span>
               <span className="text-[10px] text-zinc-400 hidden sm:block">Review AI insights</span>
             </div>
           </div>
@@ -981,11 +707,17 @@ export default function CustomerDashboard({
 
           {/* Step 5 */}
           <div className="flex items-center space-x-2.5 shrink-0">
-            <span className="w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 font-bold text-[11px] flex items-center justify-center border border-zinc-200">
-              5
+            <span className={`w-6 h-6 rounded-full font-bold text-[11px] flex items-center justify-center transition ${
+              currentStep === 5 
+                ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 ring-offset-1' 
+                : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+            }`}>
+              {currentStep === 5 ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '5'}
             </span>
             <div>
-              <span className="font-semibold text-zinc-700 block leading-tight">Review & Action</span>
+              <span className={`block leading-tight ${currentStep === 5 ? 'font-bold text-emerald-950' : 'font-medium text-zinc-500'}`}>
+                Review & Action
+              </span>
               <span className="text-[10px] text-zinc-400 hidden sm:block">Confirm and proceed</span>
             </div>
           </div>
@@ -1459,7 +1191,7 @@ export default function CustomerDashboard({
                         <div className="flex items-center justify-center space-x-1 mb-0.5">
                           <Eye className="w-3.5 h-3.5 text-zinc-300" />
                           <span className="text-lg font-extrabold text-white font-mono">
-                            {evidenceImages.length > 0 ? '5' : '0'}
+                            {evidenceImages.length}
                           </span>
                         </div>
                         <span className="text-[10px] font-bold text-zinc-200 block leading-tight">
@@ -1472,7 +1204,7 @@ export default function CustomerDashboard({
                         <div className="flex items-center justify-center space-x-1 mb-0.5">
                           <Quote className="w-3.5 h-3.5 text-zinc-300" />
                           <span className="text-lg font-extrabold text-white font-mono">
-                            {customerClaim ? '3' : '0'}
+                            {customerClaim.trim() ? (customerClaim.split(/[.\n]+/).filter(s => s.trim().length > 0).length || 1) : 0}
                           </span>
                         </div>
                         <span className="text-[10px] font-bold text-zinc-200 block leading-tight">
@@ -1484,7 +1216,9 @@ export default function CustomerDashboard({
                       <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-2.5 text-center">
                         <div className="flex items-center justify-center space-x-1 mb-0.5">
                           <HelpCircle className="w-3.5 h-3.5 text-zinc-300" />
-                          <span className="text-lg font-extrabold text-white font-mono">4</span>
+                          <span className="text-lg font-extrabold text-white font-mono">
+                            {geminiResult?.uncertaintyFlags?.length || (evidenceImages.length === 0 ? 3 : 1)}
+                          </span>
                         </div>
                         <span className="text-[10px] font-bold text-zinc-200 block leading-tight">
                           Unknown Details
@@ -2379,6 +2113,17 @@ export default function CustomerDashboard({
           </div>
         </div>
       )}
+
+      {/* OTP Verification Modal for Registration */}
+      <OtpVerificationModal
+        isOpen={showOtpModal}
+        onClose={() => setShowOtpModal(false)}
+        phoneNumber={pendingRegistration?.mobile || regMobile}
+        email={pendingRegistration?.email || regEmail}
+        accountName={pendingRegistration?.name || regName}
+        accountType="customer"
+        onVerifySuccess={handleOtpVerified}
+      />
 
     </div>
   );

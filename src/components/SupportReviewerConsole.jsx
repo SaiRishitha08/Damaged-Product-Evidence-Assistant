@@ -28,6 +28,7 @@ import {
 import { INITIAL_EVIDENCE_CASES } from '../data/initialData';
 import { analyzeDamageWithGemini } from '../utils/geminiAnalyzer';
 import { generateGeminiAIEvidencePDF } from '../utils/pdfGenerator';
+import AIEvidenceSummaryCard from './AIEvidenceSummaryCard';
 
 export default function SupportReviewerConsole({ 
   onToast, 
@@ -307,42 +308,21 @@ export default function SupportReviewerConsole({
       {/* GEMINI AI DECISION REPORT FOR SELLER (MAIN FEATURE) */}
       {/* ======================================================== */}
       {geminiReport ? (
-        <div className="bg-gradient-to-r from-indigo-50/70 via-purple-50/50 to-pink-50/50 border-2 border-indigo-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm animate-fade-in">
-          
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-indigo-100 pb-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
-                <Bot className="w-7 h-7" />
-              </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-bold text-indigo-700 uppercase tracking-wider">
-                    Gemini 3.8 Flash AI Damage Review
-                  </span>
-                  {(() => {
-                    const isFraud = geminiReport.authenticityStatus === 'FRAUD' || (geminiReport.fraudProbability || 0) > 50 || geminiReport.recommendation === 'CONTEST';
-                    const isReturn = geminiReport.recommendation === 'RETURN' || geminiReport.authenticityStatus === 'TAMPER_SUSPECTED';
-                    const isSafe = geminiReport.recommendation === 'VERIFIED_PRISTINE';
-                    const riskLevel = isFraud ? 'HIGH RISK' : (isReturn ? 'MODERATE RISK' : (isSafe ? 'SAFE' : 'LOW RISK'));
-                    return (
-                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-                        riskLevel === 'HIGH RISK' ? 'bg-rose-100 text-rose-800 border-rose-300' :
-                        riskLevel === 'MODERATE RISK' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                        riskLevel === 'SAFE' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
-                        'bg-blue-100 text-blue-800 border-blue-300'
-                      }`}>
-                        Seller Risk: {riskLevel}
-                      </span>
-                    );
-                  })()}
-                </div>
-                <h3 className="text-xl font-extrabold text-slate-900 mt-0.5">
-                  Recommendation Report Generated for Seller
-                </h3>
-              </div>
+        <div className="space-y-4 animate-fade-in">
+          {/* Top Export & Forward Action Toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-zinc-200">
+            <div className="flex items-center space-x-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-bold text-zinc-900">
+                Live Evidence Summary Generated
+              </span>
+              <span className="text-xs text-zinc-400">·</span>
+              <span className="text-xs text-zinc-500 font-mono">
+                {geminiReport.model || 'Gemini 3.8 Flash Vision'}
+              </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center space-x-2">
               <button
                 onClick={() => {
                   generateGeminiAIEvidencePDF({
@@ -351,99 +331,54 @@ export default function SupportReviewerConsole({
                     geminiReport: activeCase.geminiReport
                   });
                 }}
-                className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-xs"
+                className="px-3.5 py-2 bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer"
                 title="Download Certified Gemini AI Evidence PDF"
               >
                 <FileDown className="w-4 h-4 text-emerald-600" />
-                <span>Download Gemini AI PDF</span>
+                <span>Download PDF Dossier</span>
               </button>
 
               <button
                 onClick={handleSendReportToSeller}
-                className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-2 shadow-sm"
+                className="px-4 py-2 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl text-xs font-bold transition flex items-center space-x-2 shadow-sm cursor-pointer"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-3.5 h-3.5 text-zinc-300" />
                 <span>Forward Report to Seller</span>
               </button>
             </div>
           </div>
 
-          {/* VERDICT HIGHLIGHT BANNER: REPLACE / REFUND / RETURN */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-2xl bg-white border border-indigo-100 shadow-xs space-y-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                Gemini AI Recommendation
-              </span>
-              <div className="flex items-center space-x-2">
-                {recBadge && (
-                  <span className={`px-3 py-1 rounded-xl text-xs font-extrabold border ${recBadge.color}`}>
-                    {recBadge.label}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white border border-indigo-100 shadow-xs space-y-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                Liability Attribution
-              </span>
-              <span className="text-sm font-bold text-slate-900 block">
-                {geminiReport.liability}
-              </span>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white border border-indigo-100 shadow-xs space-y-1">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                Analyzed Timestamp
-              </span>
-              <span className="text-xs font-mono text-slate-700 font-semibold block">
-                {geminiReport.analyzedAt}
-              </span>
-            </div>
-          </div>
-
-          {/* Executive Summary */}
-          <div className="p-4 rounded-2xl bg-white border border-indigo-100 space-y-1.5 shadow-xs">
-            <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">
-              Executive Summary for Seller
-            </span>
-            <p className="text-sm font-semibold text-slate-900 leading-relaxed">
-              {geminiReport.executiveSummary}
-            </p>
-          </div>
-
-          {/* Detailed Evidentiary Analysis & Rationale */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-1.5">
-              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
-                Evidentiary Breakdown (Camera vs Pre-Pack)
-              </span>
-              <p className="text-xs text-slate-700 leading-relaxed">
-                {geminiReport.detailedAnalysis}
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-1.5">
-              <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">
-                Decision Rationale (Why {geminiReport.recommendation})
-              </span>
-              <p className="text-xs text-slate-700 leading-relaxed">
-                {geminiReport.decisionRationale}
-              </p>
-            </div>
-          </div>
-
-          {/* Action Advice for the Seller */}
-          <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-1.5">
-            <div className="flex items-center space-x-2 text-emerald-800 text-xs font-bold">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Recommended Seller Action Protocol:</span>
-            </div>
-            <p className="text-xs text-emerald-950 font-medium leading-relaxed">
-              {geminiReport.sellerActionAdvice}
-            </p>
-          </div>
-
+          {/* Full AI Evidence Summary Component with All 7 Sections & Controls */}
+          <AIEvidenceSummaryCard
+            caseData={activeCase}
+            report={geminiReport}
+            sellerPackingRecord={matchingPackingRecord}
+            isAgentView={true}
+            onAgentDecision={(caseId, decisionType) => {
+              if (decisionType === 'APPROVE_REPLACE') {
+                handleUpdateActiveCase({
+                  status: 'Replacement Approved by Support Agent',
+                  reviewerConfirmation: true,
+                  reviewerNotes: 'Support agent verified photographic evidence and confirmed automated replacement approval.'
+                });
+                onToast && onToast(`Case ${caseId}: Replacement confirmed & approved by agent!`, 'success');
+              } else if (decisionType === 'REQUEST_EVIDENCE') {
+                handleUpdateActiveCase({
+                  status: 'Awaiting Packaging Photographs',
+                  requestedEvidenceType: 'Outer Packaging & Label Close-up',
+                  reviewerNotes: 'Agent requested packaging photographs from customer per policy.'
+                });
+                onToast && onToast(`Case ${caseId}: Requested packaging photographs from customer.`, 'info');
+              } else if (decisionType === 'REJECT_UNSUBSTANTIATED') {
+                handleUpdateActiveCase({
+                  status: 'Claim Rejected: Unsubstantiated Evidence',
+                  reviewerConfirmation: true,
+                  reviewerNotes: 'Agent rejected claim due to insufficient or anomalous evidence.'
+                });
+                onToast && onToast(`Case ${caseId}: Claim rejected by support agent.`, 'error');
+              }
+            }}
+          />
         </div>
       ) : (
         /* Prompt to Run Gemini AI */
