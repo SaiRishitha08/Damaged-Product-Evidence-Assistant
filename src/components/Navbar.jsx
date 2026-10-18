@@ -68,16 +68,16 @@ export default function Navbar({
 
   const userName = isSellerMode
     ? (currentSeller?.name || 'Apex Tech Store')
-    : (currentCustomer?.name || currentUser?.name || 'Kajal');
+    : (currentCustomer?.name || currentUser?.name || 'Guest User');
   const userRole = isSellerMode
     ? 'Verified Seller'
-    : (currentCustomer ? 'Customer' : (currentUser?.roleLabel || 'Support Agent'));
+    : (currentCustomer ? 'Customer' : (currentUser?.roleLabel || 'Guest'));
   const userInitials = userName
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
     .map(w => w[0].toUpperCase())
-    .join('') || (isSellerMode ? 'AP' : 'KA');
+    .join('') || (isSellerMode ? 'AP' : 'GU');
 
   // Navigation Items matching the active portal mode
   const navItems = isSellerMode

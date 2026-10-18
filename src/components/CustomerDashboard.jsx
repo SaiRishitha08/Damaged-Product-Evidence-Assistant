@@ -59,6 +59,7 @@ import {
   getOrdersForCustomer,
   getCustomerMetrics
 } from '../data/customerDirectory';
+import OtpVerificationModal from './OtpVerificationModal';
 
 export default function CustomerDashboard({ 
   currentCustomer = null,
@@ -82,6 +83,8 @@ export default function CustomerDashboard({
   // Registration & Add Order Modal / Drawer States
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showAddOrderModal, setShowAddOrderModal] = useState(false);
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [pendingRegistration, setPendingRegistration] = useState(null);
 
   // Auth state for unauthenticated customer view: 'login' | 'signup'
   const [authMode, setAuthMode] = useState(() => customerRegistry.length > 0 ? 'login' : 'signup');
@@ -320,20 +323,28 @@ export default function CustomerDashboard({
       return;
     }
 
-    if (onRegisterCustomer) {
-      onRegisterCustomer({
-        name: regName.trim(),
-        mobile: cleanMobile,
-        phone: `+91 ${cleanMobile.slice(0, 5)} ${cleanMobile.slice(5)}`,
-        password: regPassword.trim() || 'password123',
-        email: regEmail.trim() || `${cleanMobile}@customer.fynd.com`,
-        address: regAddress.trim() || 'Standard Delivery Address',
-        city: regCity.trim() || 'Hyderabad',
-        state: regState.trim() || 'Telangana',
-        pincode: regPincode.trim() || '500033'
-      });
-    }
+    const newCustomer = {
+      name: regName.trim(),
+      mobile: cleanMobile,
+      phone: `+91 ${cleanMobile.slice(0, 5)} ${cleanMobile.slice(5)}`,
+      password: regPassword.trim() || 'password123',
+      email: regEmail.trim() || `${cleanMobile}@customer.fynd.com`,
+      address: regAddress.trim() || 'Standard Delivery Address',
+      city: regCity.trim() || 'Hyderabad',
+      state: regState.trim() || 'Telangana',
+      pincode: regPincode.trim() || '500033'
+    };
 
+    setPendingRegistration(newCustomer);
+    setShowOtpModal(true);
+  };
+
+  const handleOtpVerified = () => {
+    if (pendingRegistration && onRegisterCustomer) {
+      onRegisterCustomer(pendingRegistration);
+    }
+    setShowOtpModal(false);
+    setPendingRegistration(null);
     setRegName('');
     setRegMobile('');
     setRegPassword('');
@@ -461,6 +472,8 @@ export default function CustomerDashboard({
       // 3. Dispatch & route the completed docket to the Seller!
       onSubmitCase(casePayload);
       setSubmissionSuccess(casePayload);
+      setEvidenceImages([]);
+      setCustomerClaim('');
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
@@ -802,10 +815,32 @@ export default function CustomerDashboard({
             </form>
           )}
 
+          {/* OTP Verification Modal during Customer Sign Up */}
+          <OtpVerificationModal
+            isOpen={showOtpModal}
+            onClose={() => setShowOtpModal(false)}
+            phoneNumber={pendingRegistration?.mobile || regMobile}
+            email={pendingRegistration?.email || regEmail}
+            accountName={pendingRegistration?.name || regName}
+            accountType="customer"
+            onVerifySuccess={handleOtpVerified}
+          />
+
         </div>
       </div>
     );
   }
+
+  // Dynamic progress through the 5-step dispute claim workflow
+  const currentStep = submissionSuccess 
+    ? 5 
+    : isAnalyzingGemini 
+      ? 4 
+      : evidenceImages.length > 0 
+        ? 3 
+        : customerClaim.trim().length > 0 
+          ? 2 
+          : 1;
 
   return (
     <div className="space-y-6 pb-16 font-['Plus_Jakarta_Sans',sans-serif]">
@@ -817,7 +852,7 @@ export default function CustomerDashboard({
         <div>
           <div className="flex items-center space-x-2.5 flex-wrap gap-y-1">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-950 tracking-tight">
-              Hey {currentCustomer?.name?.split(' ')[0] || 'Kajal'},
+              Hey {currentCustomer?.name?.split(' ')[0] || 'Customer'},
             </h1>
             <div className="relative inline-block">
               <select
@@ -933,11 +968,19 @@ export default function CustomerDashboard({
           
           {/* Step 1 */}
           <div className="flex items-center space-x-2.5 shrink-0">
-            <span className="w-6 h-6 rounded-full bg-zinc-950 text-white font-bold text-[11px] flex items-center justify-center">
-              1
+            <span className={`w-6 h-6 rounded-full font-bold text-[11px] flex items-center justify-center transition ${
+              currentStep > 1 
+                ? 'bg-emerald-600 text-white' 
+                : currentStep === 1 
+                  ? 'bg-zinc-950 text-white ring-2 ring-zinc-400 ring-offset-1' 
+                  : 'bg-zinc-100 text-zinc-700 border border-zinc-200'
+            }`}>
+              {currentStep > 1 ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '1'}
             </span>
             <div>
-              <span className="font-bold text-zinc-950 block leading-tight">Order & Product</span>
+              <span className={`block leading-tight ${currentStep >= 1 ? 'font-bold text-zinc-950' : 'font-semibold text-zinc-500'}`}>
+                Order & Product
+              </span>
               <span className="text-[10px] text-zinc-500 hidden sm:block">Select order and product details</span>
             </div>
           </div>
@@ -945,11 +988,19 @@ export default function CustomerDashboard({
 
           {/* Step 2 */}
           <div className="flex items-center space-x-2.5 shrink-0">
-            <span className="w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 font-bold text-[11px] flex items-center justify-center border border-zinc-200">
-              2
+            <span className={`w-6 h-6 rounded-full font-bold text-[11px] flex items-center justify-center transition ${
+              currentStep > 2 
+                ? 'bg-emerald-600 text-white' 
+                : currentStep === 2 
+                  ? 'bg-zinc-950 text-white ring-2 ring-zinc-400 ring-offset-1' 
+                  : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+            }`}>
+              {currentStep > 2 ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '2'}
             </span>
             <div>
-              <span className="font-semibold text-zinc-700 block leading-tight">Damage Details</span>
+              <span className={`block leading-tight ${currentStep >= 2 ? 'font-bold text-zinc-950' : 'font-medium text-zinc-500'}`}>
+                Damage Details
+              </span>
               <span className="text-[10px] text-zinc-400 hidden sm:block">Describe the issue</span>
             </div>
           </div>
@@ -957,11 +1008,19 @@ export default function CustomerDashboard({
 
           {/* Step 3 */}
           <div className="flex items-center space-x-2.5 shrink-0">
-            <span className="w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 font-bold text-[11px] flex items-center justify-center border border-zinc-200">
-              3
+            <span className={`w-6 h-6 rounded-full font-bold text-[11px] flex items-center justify-center transition ${
+              currentStep > 3 
+                ? 'bg-emerald-600 text-white' 
+                : currentStep === 3 
+                  ? 'bg-zinc-950 text-white ring-2 ring-zinc-400 ring-offset-1' 
+                  : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+            }`}>
+              {currentStep > 3 ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '3'}
             </span>
             <div>
-              <span className="font-semibold text-zinc-700 block leading-tight">Upload Evidence</span>
+              <span className={`block leading-tight ${currentStep >= 3 ? 'font-bold text-zinc-950' : 'font-medium text-zinc-500'}`}>
+                Upload Evidence
+              </span>
               <span className="text-[10px] text-zinc-400 hidden sm:block">Add 4-5 clear photos</span>
             </div>
           </div>
@@ -969,11 +1028,19 @@ export default function CustomerDashboard({
 
           {/* Step 4 */}
           <div className="flex items-center space-x-2.5 shrink-0">
-            <span className="w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 font-bold text-[11px] flex items-center justify-center border border-zinc-200">
-              4
+            <span className={`w-6 h-6 rounded-full font-bold text-[11px] flex items-center justify-center transition ${
+              currentStep > 4 
+                ? 'bg-emerald-600 text-white' 
+                : currentStep === 4 
+                  ? 'bg-zinc-950 text-white ring-2 ring-zinc-400 ring-offset-1' 
+                  : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+            }`}>
+              {currentStep > 4 ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '4'}
             </span>
             <div>
-              <span className="font-semibold text-zinc-700 block leading-tight">AI Analysis</span>
+              <span className={`block leading-tight ${currentStep >= 4 ? 'font-bold text-zinc-950' : 'font-medium text-zinc-500'}`}>
+                AI Analysis
+              </span>
               <span className="text-[10px] text-zinc-400 hidden sm:block">Review AI insights</span>
             </div>
           </div>
@@ -981,11 +1048,17 @@ export default function CustomerDashboard({
 
           {/* Step 5 */}
           <div className="flex items-center space-x-2.5 shrink-0">
-            <span className="w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 font-bold text-[11px] flex items-center justify-center border border-zinc-200">
-              5
+            <span className={`w-6 h-6 rounded-full font-bold text-[11px] flex items-center justify-center transition ${
+              currentStep === 5 
+                ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 ring-offset-1' 
+                : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+            }`}>
+              {currentStep === 5 ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : '5'}
             </span>
             <div>
-              <span className="font-semibold text-zinc-700 block leading-tight">Review & Action</span>
+              <span className={`block leading-tight ${currentStep === 5 ? 'font-bold text-emerald-950' : 'font-medium text-zinc-500'}`}>
+                Review & Action
+              </span>
               <span className="text-[10px] text-zinc-400 hidden sm:block">Confirm and proceed</span>
             </div>
           </div>
@@ -1459,7 +1532,7 @@ export default function CustomerDashboard({
                         <div className="flex items-center justify-center space-x-1 mb-0.5">
                           <Eye className="w-3.5 h-3.5 text-zinc-300" />
                           <span className="text-lg font-extrabold text-white font-mono">
-                            {evidenceImages.length > 0 ? '5' : '0'}
+                            {evidenceImages.length}
                           </span>
                         </div>
                         <span className="text-[10px] font-bold text-zinc-200 block leading-tight">
@@ -1472,7 +1545,7 @@ export default function CustomerDashboard({
                         <div className="flex items-center justify-center space-x-1 mb-0.5">
                           <Quote className="w-3.5 h-3.5 text-zinc-300" />
                           <span className="text-lg font-extrabold text-white font-mono">
-                            {customerClaim ? '3' : '0'}
+                            {customerClaim.trim() ? (customerClaim.split(/[.\n]+/).filter(s => s.trim().length > 0).length || 1) : 0}
                           </span>
                         </div>
                         <span className="text-[10px] font-bold text-zinc-200 block leading-tight">
@@ -1484,7 +1557,9 @@ export default function CustomerDashboard({
                       <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-2.5 text-center">
                         <div className="flex items-center justify-center space-x-1 mb-0.5">
                           <HelpCircle className="w-3.5 h-3.5 text-zinc-300" />
-                          <span className="text-lg font-extrabold text-white font-mono">4</span>
+                          <span className="text-lg font-extrabold text-white font-mono">
+                            {geminiResult?.uncertaintyFlags?.length || (evidenceImages.length === 0 ? 3 : 1)}
+                          </span>
                         </div>
                         <span className="text-[10px] font-bold text-zinc-200 block leading-tight">
                           Unknown Details
@@ -2379,6 +2454,17 @@ export default function CustomerDashboard({
           </div>
         </div>
       )}
+
+      {/* OTP Verification Modal for Registration */}
+      <OtpVerificationModal
+        isOpen={showOtpModal}
+        onClose={() => setShowOtpModal(false)}
+        phoneNumber={pendingRegistration?.mobile || regMobile}
+        email={pendingRegistration?.email || regEmail}
+        accountName={pendingRegistration?.name || regName}
+        accountType="customer"
+        onVerifySuccess={handleOtpVerified}
+      />
 
     </div>
   );

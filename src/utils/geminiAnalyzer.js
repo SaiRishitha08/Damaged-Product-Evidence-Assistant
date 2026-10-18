@@ -5,12 +5,12 @@ const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 // Multi-model resilience cascade: if a model hits rate limits/quotas (e.g. 429), immediately cascade to the next
 const GEMINI_MODELS = [
-  'gemini-3.7-flash',
-  'gemini-3.6-flash',
-  'gemini-3.5-flash',
-  'gemini-flash-latest',
-  'gemini-flash-lite-latest',
-  'gemini-3.8-flash'
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-flash-8b'
 ];
 
 /**
@@ -440,9 +440,15 @@ Respond with ONLY a valid JSON object matching this EXACT schema:
         imagesAttachedCount: resolvedImages.customerEvidenceList.length + (resolvedImages.beforePacking ? 1 : 0) + (resolvedImages.afterPacking ? 1 : 0)
       },
       resolvedImages: {
-        beforePacking: record?.beforePacking?.photo ? await resolveImageBase64(record.beforePacking.photo) : null,
-        afterPacking: record?.afterPacking?.photo ? await resolveImageBase64(record.afterPacking.photo) : null,
-        customerEvidence: caseData.customerEvidenceImage ? await resolveImageBase64(caseData.customerEvidenceImage) : null
+        beforePacking: (record?.beforePacking?.photos?.[0] || record?.beforePacking?.photo)
+          ? await resolveImageBase64(record.beforePacking.photos?.[0] || record.beforePacking.photo)
+          : null,
+        afterPacking: (record?.afterPacking?.photos?.[0] || record?.afterPacking?.photo)
+          ? await resolveImageBase64(record.afterPacking.photos?.[0] || record.afterPacking.photo)
+          : null,
+        customerEvidence: (Array.isArray(caseData.customerEvidenceImages) && caseData.customerEvidenceImages[0])
+          ? await resolveImageBase64(caseData.customerEvidenceImages[0])
+          : (caseData.customerEvidenceImage ? await resolveImageBase64(caseData.customerEvidenceImage) : null)
       }
     };
   }

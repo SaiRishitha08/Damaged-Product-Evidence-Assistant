@@ -118,7 +118,7 @@ export default function EvidenceDossierModal({ caseData, isOpen, onClose }) {
               Quoted Customer Stated Problem (Verbatim Testimony)
             </span>
             <p className="text-sm text-slate-800 italic leading-relaxed">
-              "{caseData.customerClaim}"
+              &ldquo;{caseData.customerClaim}&rdquo;
             </p>
             <div className="text-[10px] text-rose-700 font-medium">
               Damage Category: <strong>{caseData.damageType}</strong>
