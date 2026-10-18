@@ -111,7 +111,7 @@ export default function App() {
         console.error('Failed to parse active seller', e);
       }
     }
-    return DEFAULT_SELLER_STORES[0] || null;
+    return null;
   });
 
   // Centralized Customer Orders (Partitioned per customer by mobile number)
@@ -752,6 +752,7 @@ export default function App() {
             onSwitchCustomer={handleSwitchCustomer}
             onRegisterCustomer={handleRegisterCustomer}
             onAddCustomerOrder={handleAddCustomerOrder}
+            onSwitchToSeller={() => setCurrentTab('seller')}
             customerOrders={customerOrders}
             setCustomerOrders={setCustomerOrders}
             sellerPackingRecords={sellerPackingRecords}
@@ -767,10 +768,12 @@ export default function App() {
 
         {currentTab === 'seller' && (
           <SellerDashboard
-            activeSeller={currentSeller || sellerRegistry[0] || DEFAULT_SELLER_STORES[0]}
+            activeSeller={currentSeller}
             sellerRegistry={sellerRegistry.length > 0 ? sellerRegistry : DEFAULT_SELLER_STORES}
             onSwitchSeller={handleSwitchSeller}
             onRegisterSeller={handleRegisterSeller}
+            onLogin={handleLogin}
+            onSwitchToCustomer={() => setCurrentTab('customer')}
             sellerPackingRecords={sellerPackingRecords}
             evidenceCases={evidenceCases}
             customerRegistry={customerRegistry}
