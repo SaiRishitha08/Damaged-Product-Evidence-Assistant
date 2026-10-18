@@ -263,6 +263,21 @@ export default function Navbar({
                 </button>
               );
             })}
+
+            {/* Support Reviewer Console Link */}
+            <button
+              type="button"
+              onClick={() => setCurrentTab('reviewer')}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                currentTab === 'reviewer'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100'
+              }`}
+              title="Support Reviewer Console (Human Decision Maker)"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Support Console</span>
+            </button>
           </nav>
 
           {/* Right Controls: Search, Theme, Notifications, Profile & Firebase */}

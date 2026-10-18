@@ -962,8 +962,20 @@ export default function AuthLandingPage({
         </div>
 
         {/* Bottom Micro Footer */}
-        <div className="w-full text-center text-[11px] text-zinc-400 mt-4">
-          Damaged Product Evidence Assistant &bull; Fynd &times; NMIMS Hyderabad &bull; Gemini 3.8 Multimodal
+        <div className="w-full text-center text-[11px] text-zinc-400 mt-4 space-y-2">
+          <div>
+            <button
+              type="button"
+              onClick={() => onRoleChange && onRoleChange('reviewer')}
+              className="inline-flex items-center space-x-1 px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-full font-bold transition shadow-xs cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Open Support Reviewer Console (Human Decision Maker) &rarr;</span>
+            </button>
+          </div>
+          <div>
+            Damaged Product Evidence Assistant &bull; Fynd &times; NMIMS Hyderabad &bull; Gemini 3.8 Multimodal
+          </div>
         </div>
 
       </div>

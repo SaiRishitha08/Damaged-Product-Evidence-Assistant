@@ -1,7 +1,19 @@
-// Customer Directory & Per-Customer Order Repository for C12 Evidence Assistant
-// All dummy data and mock users removed per user request. Users start empty for manual registration.
+import { SAMPLE_BOOKED_PRODUCTS } from './initialData';
 
-export const DEFAULT_CUSTOMER_PROFILES = [];
+export const DEFAULT_CUSTOMER_PROFILES = [
+  {
+    id: 'CUST-1024',
+    name: 'Aarav Sharma',
+    phone: '+91 98112 30491',
+    mobile: '9811230491',
+    email: 'aarav.sharma@example.com',
+    address: 'Plot 42, Jubilee Hills Road No 36',
+    city: 'Hyderabad',
+    state: 'Telangana',
+    pincode: '500033',
+    membership: 'Gold Member'
+  }
+];
 
 /**
  * Normalizes phone numbers to standard 10-digit format
@@ -30,32 +42,32 @@ export function findCustomerByMobile(mobileInput, registry = []) {
 }
 
 /**
- * Loads customer registry from localStorage or returns empty array
+ * Loads customer registry from localStorage or returns default
  */
 export function loadCustomerRegistry() {
   try {
     const saved = localStorage.getItem('C12_CUSTOMER_REGISTRY');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
     }
   } catch (err) {
     console.warn('Failed loading customer registry from localStorage:', err);
   }
-  return [];
+  return DEFAULT_CUSTOMER_PROFILES;
 }
 
 /**
- * Loads all customer orders from storage or returns empty array
+ * Loads all customer orders from storage or returns default sample booked products
  */
 export function loadAllCustomerOrders(registry = []) {
   try {
     const saved = localStorage.getItem('C12_CUSTOMER_ORDERS');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
     }
@@ -63,7 +75,7 @@ export function loadAllCustomerOrders(registry = []) {
     console.warn('Failed loading customer orders from localStorage:', err);
   }
 
-  return [];
+  return SAMPLE_BOOKED_PRODUCTS;
 }
 
 /**

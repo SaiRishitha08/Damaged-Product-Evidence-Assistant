@@ -9,55 +9,98 @@ import {
   Truck, 
   Package, 
   Clock, 
-  ExternalLink 
+  ExternalLink,
+  Bot,
+  FileText
 } from 'lucide-react';
 import { generateCustomerEvidencePDF } from '../utils/pdfGenerator';
+import AIEvidenceSummaryCard from './AIEvidenceSummaryCard';
 
-export default function EvidenceDossierModal({ caseData, isOpen, onClose }) {
+export default function EvidenceDossierModal({ 
+  caseData, 
+  isOpen, 
+  onClose,
+  onApproveRefund = null,
+  onDeclineRefund = null
+}) {
   const [selectedPhotoIdx, setSelectedPhotoIdx] = useState(0);
+  const [activeDossierTab, setActiveDossierTab] = useState('ai_summary'); // 'ai_summary' | 'case_spec'
+
   if (!isOpen || !caseData) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-zinc-950/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-fade-in font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-zinc-950/70 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-fade-in font-['Plus_Jakarta_Sans',sans-serif]">
       <div 
-        className="relative w-full max-w-4xl bg-white border border-zinc-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative w-full max-w-4xl bg-white border border-zinc-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         
         {/* Modal Top Bar - Linear Monochrome Styling */}
         <div className="flex items-center justify-between px-6 py-4 bg-zinc-50 border-b border-zinc-200">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-zinc-950 text-white flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-zinc-950 text-white flex items-center justify-center shadow-xs">
               <ShieldCheck className="w-5 h-5 text-white" />
             </div>
             <div>
-              <span className="text-xs font-mono font-bold text-zinc-950 block">
-                {caseData.caseId}
-              </span>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-mono font-bold text-zinc-950 block">
+                  {caseData.caseId || caseData.orderNo}
+                </span>
+                <span className="text-zinc-400 text-xs">·</span>
+                <span className="text-xs text-zinc-500 font-medium">Evidence Docket</span>
+              </div>
               <h3 className="text-sm font-bold text-zinc-950">
-                Official Damaged Product Evidence Case Dossier
+                Official Damaged Product Evidence Dossier
               </h3>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* View Switcher: AI Summary vs Case Details */}
+            <div className="hidden sm:flex items-center p-1 bg-zinc-200/60 rounded-xl text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setActiveDossierTab('ai_summary')}
+                className={`px-3 py-1 rounded-lg transition flex items-center space-x-1.5 ${
+                  activeDossierTab === 'ai_summary' 
+                    ? 'bg-white text-zinc-950 shadow-2xs font-bold' 
+                    : 'text-zinc-600 hover:text-zinc-950'
+                }`}
+              >
+                <Bot className="w-3.5 h-3.5 text-indigo-600" />
+                <span>AI Summary</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveDossierTab('case_spec')}
+                className={`px-3 py-1 rounded-lg transition flex items-center space-x-1.5 ${
+                  activeDossierTab === 'case_spec' 
+                    ? 'bg-white text-zinc-950 shadow-2xs font-bold' 
+                    : 'text-zinc-600 hover:text-zinc-950'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5 text-zinc-600" />
+                <span>Evidence Docket</span>
+              </button>
+            </div>
+
             <button
               onClick={() => generateCustomerEvidencePDF(caseData)}
-              className="px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 shadow-xs"
+              className="px-3 py-1.5 bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 shadow-xs cursor-pointer"
             >
               <FileDown className="w-4 h-4" />
               <span>Download PDF</span>
             </button>
             <button
               onClick={() => window.print()}
-              className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded-xl transition"
+              className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded-xl transition cursor-pointer"
               title="Print Dossier"
             >
               <Printer className="w-4 h-4" />
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded-xl transition"
+              className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded-xl transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -67,24 +110,34 @@ export default function EvidenceDossierModal({ caseData, isOpen, onClose }) {
         {/* Modal Scrollable Body */}
         <div className="p-6 overflow-y-auto space-y-6 text-xs text-slate-700">
           
-          {/* Header Banner */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                Dispute Status
-              </span>
-              <div className="flex items-center space-x-2 mt-0.5">
-                <span className="text-sm font-extrabold text-slate-900">{caseData.status}</span>
-                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-                  {caseData.damageSeverity} Severity
-                </span>
+          {/* TAB 1: AI EVIDENCE SUMMARY CARD (PRIMARY VIEW) */}
+          {activeDossierTab === 'ai_summary' ? (
+            <AIEvidenceSummaryCard
+              caseData={caseData}
+              report={caseData.geminiReport}
+              onApproveRefund={onApproveRefund}
+              onDeclineRefund={onDeclineRefund}
+            />
+          ) : (
+            /* TAB 2: DETAILED SPECIFICATION VIEW */
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-4 border-b border-slate-200 gap-2">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Dispute Status
+                  </span>
+                  <div className="flex items-center space-x-2 mt-0.5">
+                    <span className="text-sm font-extrabold text-slate-900">{caseData.status}</span>
+                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                      {caseData.damageSeverity} Severity
+                    </span>
+                  </div>
+                </div>
+                <div className="text-left sm:text-right">
+                  <span className="text-[10px] font-semibold text-slate-500 block">Reported Timestamp</span>
+                  <span className="font-mono text-slate-800 font-medium">{caseData.reportedAt}</span>
+                </div>
               </div>
-            </div>
-            <div className="text-left sm:text-right">
-              <span className="text-[10px] font-semibold text-slate-500 block">Reported Timestamp</span>
-              <span className="font-mono text-slate-800 font-medium">{caseData.reportedAt}</span>
-            </div>
-          </div>
 
           {/* 2-Column Info Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -220,6 +273,8 @@ export default function EvidenceDossierModal({ caseData, isOpen, onClose }) {
               </p>
             </div>
           </div>
+        </div>
+      )}
 
         </div>
 

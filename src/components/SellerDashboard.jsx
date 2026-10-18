@@ -69,6 +69,8 @@ export default function SellerDashboard({
   onUpdateCaseStatus,
   onUpdateCase,
   onOpenDossierModal,
+  onApproveRefund,
+  onDeclineRefund,
   onLogout
 }) {
   const effectiveSeller = activeSeller;
@@ -2153,13 +2155,32 @@ export default function SellerDashboard({
 
                     <button
                       onClick={() => {
-                        onUpdateCaseStatus(selectedCaseForReview.caseId, 'Refund Approved by Seller');
-                        alert('Seller approved monetary refund. Bank disbursement initiated.');
+                        if (onApproveRefund) {
+                          onApproveRefund(selectedCaseForReview.caseId);
+                        } else {
+                          onUpdateCaseStatus(selectedCaseForReview.caseId, 'Refund Approved by Seller');
+                        }
+                        alert('Seller authorized and approved customer monetary refund. Bank disbursement initiated.');
                       }}
                       className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-xs"
                     >
                       <DollarSign className="w-3.5 h-3.5 text-sky-600" />
-                      <span>Approve Refund</span>
+                      <span>Authorize Refund (Seller Only)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (onDeclineRefund) {
+                          onDeclineRefund(selectedCaseForReview.caseId);
+                        } else {
+                          onUpdateCaseStatus(selectedCaseForReview.caseId, 'Refund Declined by Seller: Replacement Offered');
+                        }
+                        alert('Refund declined by seller; free replacement offered.');
+                      }}
+                      className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-xs"
+                    >
+                      <X className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Decline Refund / Offer Replace</span>
                     </button>
 
                     <button
@@ -2192,6 +2213,14 @@ export default function SellerDashboard({
                       className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-semibold transition shadow-xs"
                     >
                       <span>Contest Claim</span>
+                    </button>
+
+                    <button
+                      onClick={() => onOpenDossierModal && onOpenDossierModal(selectedCaseForReview)}
+                      className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-xs"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Open AI Evidence Summary (C12)</span>
                     </button>
 
                     <button
